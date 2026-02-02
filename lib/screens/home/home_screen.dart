@@ -5,6 +5,7 @@ import '../../providers/app_provider.dart';
 import '../../utils/app_theme.dart';
 import '../measurements/guided_measurement_flow.dart';
 import '../measurements/measurement_input_screen.dart';
+import '../photos/photo_gallery_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -24,6 +25,7 @@ class _HomeScreenState extends State<HomeScreen> {
         children: const [
           DashboardTab(),
           MeasurementsTab(),
+          PhotoGalleryScreen(),
           SizesTab(),
           ProfileTab(),
         ],
@@ -42,6 +44,7 @@ class _HomeScreenState extends State<HomeScreen> {
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
           onTap: (index) => setState(() => _currentIndex = index),
+          type: BottomNavigationBarType.fixed,
           items: const [
             BottomNavigationBarItem(
               icon: Icon(Icons.dashboard_outlined),
@@ -52,6 +55,11 @@ class _HomeScreenState extends State<HomeScreen> {
               icon: Icon(Icons.straighten_outlined),
               activeIcon: Icon(Icons.straighten),
               label: 'Measure',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.photo_camera_outlined),
+              activeIcon: Icon(Icons.photo_camera),
+              label: 'Photos',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.checkroom_outlined),

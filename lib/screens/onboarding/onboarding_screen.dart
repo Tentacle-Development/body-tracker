@@ -324,10 +324,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
+  int? _calculateAge(DateTime? birthDate) {
+    if (birthDate == null) return null;
+    final now = DateTime.now();
+    int age = now.year - birthDate.year;
+    if (now.month < birthDate.month ||
+        (now.month == birthDate.month && now.day < birthDate.day)) {
+      age--;
+    }
+    return age;
+  }
+
   Widget _buildBirthdayPage() {
-    final age = _dateOfBirth != null
-        ? DateTime.now().year - _dateOfBirth!.year
-        : null;
+    final age = _calculateAge(_dateOfBirth);
 
     return Padding(
       padding: const EdgeInsets.all(24.0),
