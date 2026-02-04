@@ -74,6 +74,7 @@ class DatabaseService {
         image_path TEXT NOT NULL,
         category TEXT,
         notes TEXT,
+        weight REAL,
         taken_at TEXT NOT NULL,
         created_at TEXT NOT NULL,
         FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
@@ -113,6 +114,11 @@ class DatabaseService {
           'CREATE INDEX IF NOT EXISTS idx_progress_photos_user_id ON progress_photos (user_id)');
       await db.execute(
           'CREATE INDEX IF NOT EXISTS idx_progress_photos_taken_at ON progress_photos (taken_at)');
+    }
+
+    if (oldVersion < 3) {
+      // Add weight column to progress_photos
+      await db.execute('ALTER TABLE progress_photos ADD COLUMN weight REAL');
     }
   }
 
