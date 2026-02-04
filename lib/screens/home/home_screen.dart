@@ -10,6 +10,7 @@ import '../photos/photo_gallery_screen.dart';
 import 'progress_charts_tab.dart';
 import '../settings/backup_restore_screen.dart';
 import '../settings/dashboard_customize_screen.dart';
+import '../settings/reminder_settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -609,6 +610,21 @@ class ProfileTab extends StatelessWidget {
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
               ),
+            ),
+            const SizedBox(height: 12),
+            
+            _buildSettingsItem(
+              context,
+              icon: Icons.notifications_active_outlined,
+              title: 'Reminders',
+              subtitle: 'Setup measurement notifications',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const ReminderSettingsScreen(),
+                  ),
+                );
+              },
             ),
             const SizedBox(height: 12),
             

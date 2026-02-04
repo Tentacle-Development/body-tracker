@@ -3,11 +3,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_profile.dart';
 import '../models/measurement.dart';
 import '../models/progress_photo.dart';
+import '../models/user_settings.dart';
 import '../services/database_service.dart';
 import '../services/photo_service.dart';
+import '../services/notification_service.dart';
 
 class AppProvider extends ChangeNotifier {
   UserProfile? _currentUser;
+  UserSettings? _settings;
   List<UserProfile> _users = [];
   List<Measurement> _measurements = [];
   List<ProgressPhoto> _photos = [];
@@ -16,6 +19,7 @@ class AppProvider extends ChangeNotifier {
   bool _isFirstLaunch = true;
 
   UserProfile? get currentUser => _currentUser;
+  UserSettings? get settings => _settings;
   List<UserProfile> get users => _users;
   List<Measurement> get measurements => _measurements;
   List<ProgressPhoto> get photos => _photos;
@@ -43,6 +47,7 @@ class AppProvider extends ChangeNotifier {
         await loadMeasurements();
         await loadPhotos();
         await loadDashboardCategories();
+        await loadSettings();
       }
     } catch (e) {
       debugPrint('Error initializing app: $e');
@@ -109,6 +114,68 @@ class AppProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> loadSettings() async {
+    if (_currentUser == null || _currentUser!.id == null) return;
+
+    try {
+      final db = await DatabaseService.instance.database;
+      final maps = await db.query(
+        'settings',
+        where: 'user_id = ?',
+        whereArgs: [_currentUser!.id],
+      );
+
+      if (maps.isNotEmpty) {
+        _settings = UserSettings.fromMap(maps.first);
+      } else {
+        // Create default settings if not exist
+        _settings = UserSettings(userId: _currentUser!.id!);
+        await db.insert('settings', _settings!.toMap());
+      }
+      
+      // Sync notifications
+      await _syncReminders();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error loading settings: $e');
+    }
+  }
+
+  Future<void> updateSettings(UserSettings newSettings) async {
+    try {
+      final db = await DatabaseService.instance.database;
+      await db.update(
+        'settings',
+        newSettings.toMap(),
+        where: 'user_id = ?',
+        whereArgs: [newSettings.userId],
+      );
+      _settings = newSettings;
+      
+      // Resync notifications
+      await _syncReminders();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error updating settings: $e');
+    }
+  }
+
+  Future<void> _syncReminders() async {
+    if (_settings == null) return;
+
+    final interval = _settings!.reminderIntervalDays;
+    if (interval > 0) {
+      await NotificationService.instance.scheduleReminder(
+        id: 1,
+        title: 'Time to Measure!',
+        body: "Don't forget to track your body progress today. Stay consistent!",
+        intervalDays: interval,
+      );
+    } else {
+      await NotificationService.instance.cancelAll();
+    }
+  }
+
   Future<void> createUser(UserProfile user) async {
     try {
       final db = await DatabaseService.instance.database;
@@ -143,6 +210,7 @@ class AppProvider extends ChangeNotifier {
     loadMeasurements();
     loadPhotos();
     loadDashboardCategories();
+    loadSettings();
     notifyListeners();
   }
 
