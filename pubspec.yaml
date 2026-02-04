@@ -2,7 +2,7 @@ name: body_tracker
 description: "Body measurement tracking app with health statistics and clothing size guide."
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.8.0+21
 
 environment:
   sdk: ^3.10.8
@@ -27,10 +27,20 @@ dependencies:
   flutter_local_notifications: ^17.2.2
   
   # Shared preferences for settings
-  shared_preferences: ^2.2.3
+  shared_preferences: ^2.5.4
   
   # Intl for date formatting
   intl: ^0.19.0
+  
+  # Camera and image handling
+  image_picker: ^1.0.7
+  path_provider: ^2.1.2
+  
+  # Sharing and file handling
+  share_plus: ^12.0.1
+  archive: ^4.0.7
+  file_picker: ^10.3.10
+  timezone: ^0.9.4
 
 dev_dependencies:
   flutter_test:

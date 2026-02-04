@@ -3,9 +3,11 @@ import 'package:provider/provider.dart';
 import 'utils/app_theme.dart';
 import 'providers/app_provider.dart';
 import 'screens/splash_screen.dart';
+import 'services/notification_service.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await NotificationService.instance.initialize();
   runApp(const MyApp());
 }
 

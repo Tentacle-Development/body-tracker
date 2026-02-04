@@ -1,18 +1,33 @@
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_profile.dart';
 import '../models/measurement.dart';
+import '../models/progress_photo.dart';
+import '../models/user_settings.dart';
+import '../models/goal.dart';
 import '../services/database_service.dart';
+import '../services/photo_service.dart';
+import '../services/notification_service.dart';
+import '../services/goal_service.dart';
 
 class AppProvider extends ChangeNotifier {
   UserProfile? _currentUser;
+  UserSettings? _settings;
   List<UserProfile> _users = [];
   List<Measurement> _measurements = [];
+  List<ProgressPhoto> _photos = [];
+  List<Goal> _goals = [];
+  List<String> _dashboardCategories = ['bmi', 'whr', 'weight', 'height'];
   bool _isLoading = true;
   bool _isFirstLaunch = true;
 
   UserProfile? get currentUser => _currentUser;
+  UserSettings? get settings => _settings;
   List<UserProfile> get users => _users;
   List<Measurement> get measurements => _measurements;
+  List<ProgressPhoto> get photos => _photos;
+  List<Goal> get goals => _goals;
+  List<String> get dashboardCategories => _dashboardCategories;
   bool get isLoading => _isLoading;
   bool get isFirstLaunch => _isFirstLaunch;
 
@@ -34,6 +49,10 @@ class AppProvider extends ChangeNotifier {
       if (_users.isNotEmpty) {
         _currentUser = _users.first;
         await loadMeasurements();
+        await loadPhotos();
+        await loadDashboardCategories();
+        await loadSettings();
+        await loadGoals();
       }
     } catch (e) {
       debugPrint('Error initializing app: $e');
@@ -59,6 +78,151 @@ class AppProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       debugPrint('Error loading measurements: $e');
+    }
+  }
+
+  Future<void> loadPhotos() async {
+    if (_currentUser == null || _currentUser!.id == null) return;
+
+    try {
+      _photos = await PhotoService.instance.getPhotos(_currentUser!.id!);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error loading photos: $e');
+    }
+  }
+
+  Future<void> loadDashboardCategories() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedCategories = prefs.getStringList('dashboard_categories');
+      if (savedCategories != null && savedCategories.isNotEmpty) {
+        _dashboardCategories = savedCategories;
+      } else {
+        // Defaults
+        _dashboardCategories = ['bmi', 'whr', 'weight', 'height'];
+      }
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error loading dashboard categories: $e');
+    }
+  }
+
+  Future<void> setDashboardCategories(List<String> categories) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList('dashboard_categories', categories);
+      _dashboardCategories = categories;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error saving dashboard categories: $e');
+    }
+  }
+
+  Future<void> loadSettings() async {
+    if (_currentUser == null || _currentUser!.id == null) return;
+
+    try {
+      final db = await DatabaseService.instance.database;
+      final maps = await db.query(
+        'settings',
+        where: 'user_id = ?',
+        whereArgs: [_currentUser!.id],
+      );
+
+      if (maps.isNotEmpty) {
+        _settings = UserSettings.fromMap(maps.first);
+      } else {
+        // Create default settings if not exist
+        _settings = UserSettings(userId: _currentUser!.id!);
+        await db.insert('settings', _settings!.toMap());
+      }
+      
+      // Sync notifications
+      await _syncReminders();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error loading settings: $e');
+    }
+  }
+
+  Future<void> loadGoals() async {
+    if (_currentUser == null || _currentUser!.id == null) return;
+
+    try {
+      _goals = await GoalService.instance.getGoals(_currentUser!.id!);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error loading goals: $e');
+    }
+  }
+
+  Future<void> addGoal(Goal goal) async {
+    try {
+      final newGoal = await GoalService.instance.addGoal(goal);
+      _goals.add(newGoal);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error adding goal: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> updateGoal(Goal goal) async {
+    try {
+      await GoalService.instance.updateGoal(goal);
+      final index = _goals.indexWhere((g) => g.id == goal.id);
+      if (index != -1) {
+        _goals[index] = goal;
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error updating goal: $e');
+    }
+  }
+
+  Future<void> deleteGoal(int goalId) async {
+    try {
+      await GoalService.instance.deleteGoal(goalId);
+      _goals.removeWhere((g) => g.id == goalId);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error deleting goal: $e');
+    }
+  }
+
+  Future<void> updateSettings(UserSettings newSettings) async {
+    try {
+      final db = await DatabaseService.instance.database;
+      await db.update(
+        'settings',
+        newSettings.toMap(),
+        where: 'user_id = ?',
+        whereArgs: [newSettings.userId],
+      );
+      _settings = newSettings;
+      
+      // Resync notifications
+      await _syncReminders();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error updating settings: $e');
+    }
+  }
+
+  Future<void> _syncReminders() async {
+    if (_settings == null) return;
+
+    final interval = _settings!.reminderIntervalDays;
+    if (interval > 0) {
+      await NotificationService.instance.scheduleReminder(
+        id: 1,
+        title: 'Time to Measure!',
+        body: "Don't forget to track your body progress today. Stay consistent!",
+        intervalDays: interval,
+      );
+    } else {
+      await NotificationService.instance.cancelAll();
     }
   }
 
@@ -92,7 +256,13 @@ class AppProvider extends ChangeNotifier {
 
   void setCurrentUser(UserProfile user) {
     _currentUser = user;
+    _isFirstLaunch = false;
     loadMeasurements();
+    loadPhotos();
+    loadDashboardCategories();
+    loadSettings();
+    loadGoals();
+    notifyListeners();
   }
 
   List<Measurement> getMeasurementsByType(String type) {
