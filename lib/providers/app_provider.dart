@@ -139,8 +139,11 @@ class AppProvider extends ChangeNotifier {
 
   void setCurrentUser(UserProfile user) {
     _currentUser = user;
+    _isFirstLaunch = false;
     loadMeasurements();
     loadPhotos();
+    loadDashboardCategories();
+    notifyListeners();
   }
 
   List<Measurement> getMeasurementsByType(String type) {

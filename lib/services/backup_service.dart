@@ -119,7 +119,7 @@ class BackupService {
     final photos = await PhotoService.instance.getPhotos(userId);
     
     final csvLines = <String>[];
-    csvLines.add('original_id,filename,category,notes,taken_at,created_at');
+    csvLines.add('original_id,filename,category,notes,weight,taken_at,created_at');
     
     int frontCount = 0;
     int sideCount = 0;
@@ -166,6 +166,7 @@ class BackupService {
         newFilename,
         _escapeCsv(category),
         _escapeCsv(photo.notes ?? ''),
+        photo.weight ?? '',
         photo.takenAt.toIso8601String(),
         photo.createdAt.toIso8601String(),
       ].join(','));
@@ -309,8 +310,20 @@ class BackupService {
       final filename = values[1];
       final category = values[2];
       final notes = values[3].isEmpty ? null : values[3];
-      final takenAt = DateTime.tryParse(values[4]) ?? DateTime.now();
-      final createdAt = DateTime.tryParse(values[5]) ?? DateTime.now();
+      
+      // Handle legacy backups without weight column
+      double? weight;
+      DateTime takenAt;
+      DateTime createdAt;
+      
+      if (values.length >= 7) {
+        weight = double.tryParse(values[4]);
+        takenAt = DateTime.tryParse(values[5]) ?? DateTime.now();
+        createdAt = DateTime.tryParse(values[6]) ?? DateTime.now();
+      } else {
+        takenAt = DateTime.tryParse(values[4]) ?? DateTime.now();
+        createdAt = DateTime.tryParse(values[5]) ?? DateTime.now();
+      }
       
       // Find the photo file
       String? sourcePath;
@@ -345,6 +358,7 @@ class BackupService {
           'image_path': savedPath,
           'category': category,
           'notes': notes,
+          'weight': weight,
           'taken_at': takenAt.toIso8601String(),
           'created_at': createdAt.toIso8601String(),
         });

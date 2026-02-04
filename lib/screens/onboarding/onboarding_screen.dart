@@ -4,6 +4,7 @@ import '../../models/user_profile.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/app_theme.dart';
 import '../home/home_screen.dart';
+import '../settings/backup_restore_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -92,24 +93,57 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         child: SafeArea(
           child: Column(
             children: [
-              // Progress indicator
+              // Progress indicator & Restore button
               Padding(
-                padding: const EdgeInsets.all(24.0),
+                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
                 child: Row(
-                  children: List.generate(3, (index) {
-                    return Expanded(
-                      child: Container(
-                        margin: EdgeInsets.only(right: index < 2 ? 8 : 0),
-                        height: 4,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(2),
-                          color: index <= _currentPage
-                              ? AppTheme.primaryColor
-                              : AppTheme.cardColor,
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: Row(
+                        children: List.generate(3, (index) {
+                          return Expanded(
+                            child: Container(
+                              margin: EdgeInsets.only(right: index < 2 ? 8 : 0),
+                              height: 4,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(2),
+                                color: index <= _currentPage
+                                    ? AppTheme.primaryColor
+                                    : AppTheme.cardColor,
+                              ),
+                            ),
+                          );
+                        }),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    TextButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const BackupRestoreScreen(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.restore, size: 18, color: AppTheme.primaryColor),
+                      label: const Text(
+                        'RESTORE',
+                        style: TextStyle(
+                          color: AppTheme.primaryColor,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    );
-                  }),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               // Pages
