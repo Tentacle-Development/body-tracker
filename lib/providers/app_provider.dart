@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_profile.dart';
 import '../models/measurement.dart';
 import '../models/progress_photo.dart';
@@ -10,6 +11,7 @@ class AppProvider extends ChangeNotifier {
   List<UserProfile> _users = [];
   List<Measurement> _measurements = [];
   List<ProgressPhoto> _photos = [];
+  List<String> _dashboardCategories = ['bmi', 'whr', 'weight', 'height'];
   bool _isLoading = true;
   bool _isFirstLaunch = true;
 
@@ -17,6 +19,7 @@ class AppProvider extends ChangeNotifier {
   List<UserProfile> get users => _users;
   List<Measurement> get measurements => _measurements;
   List<ProgressPhoto> get photos => _photos;
+  List<String> get dashboardCategories => _dashboardCategories;
   bool get isLoading => _isLoading;
   bool get isFirstLaunch => _isFirstLaunch;
 
@@ -39,6 +42,7 @@ class AppProvider extends ChangeNotifier {
         _currentUser = _users.first;
         await loadMeasurements();
         await loadPhotos();
+        await loadDashboardCategories();
       }
     } catch (e) {
       debugPrint('Error initializing app: $e');
@@ -75,6 +79,33 @@ class AppProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       debugPrint('Error loading photos: $e');
+    }
+  }
+
+  Future<void> loadDashboardCategories() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedCategories = prefs.getStringList('dashboard_categories');
+      if (savedCategories != null && savedCategories.isNotEmpty) {
+        _dashboardCategories = savedCategories;
+      } else {
+        // Defaults
+        _dashboardCategories = ['bmi', 'whr', 'weight', 'height'];
+      }
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error loading dashboard categories: $e');
+    }
+  }
+
+  Future<void> setDashboardCategories(List<String> categories) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList('dashboard_categories', categories);
+      _dashboardCategories = categories;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error saving dashboard categories: $e');
     }
   }
 

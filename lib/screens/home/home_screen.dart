@@ -8,6 +8,7 @@ import '../measurements/measurement_input_screen.dart';
 import '../measurements/measurement_detail_screen.dart';
 import '../photos/photo_gallery_screen.dart';
 import '../settings/backup_restore_screen.dart';
+import '../settings/dashboard_customize_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -91,13 +92,28 @@ class DashboardTab extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Dashboard',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.textPrimary,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Dashboard',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.settings_outlined, color: AppTheme.textSecondary),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const DashboardCustomizeScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
             const SizedBox(height: 24),
             Expanded(
@@ -106,98 +122,82 @@ class DashboardTab extends StatelessWidget {
                   final bmi = provider.calculateBMI();
                   final whr = provider.calculateWaistToHipRatio();
 
-                  return GridView.count(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    children: [
-                      _buildStatCard(
-                        context,
-                        'BMI',
-                        bmi?.toStringAsFixed(1) ?? '--',
-                        _getBMICategory(bmi),
-                        Icons.monitor_weight_outlined,
-                        AppTheme.primaryColor,
-                        onTap: () {
-                          // For BMI, we can open Weight details as it's the primary driver
-                          final weightGuide = MeasurementGuide.guides.firstWhere((g) => g.type == 'weight');
-                          final weightHistory = provider.getMeasurementsByType('weight');
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => MeasurementDetailScreen(
-                                guide: weightGuide,
-                                history: weightHistory,
+                  return GridView.builder(
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                    ),
+                    itemCount: provider.dashboardCategories.length,
+                    itemBuilder: (context, index) {
+                      final cat = provider.dashboardCategories[index];
+                      if (cat == 'bmi') {
+                        return _buildStatCard(
+                          context,
+                          'BMI',
+                          bmi?.toStringAsFixed(1) ?? '--',
+                          _getBMICategory(bmi),
+                          Icons.monitor_weight_outlined,
+                          AppTheme.primaryColor,
+                          onTap: () {
+                            final weightGuide = MeasurementGuide.guides.firstWhere((g) => g.type == 'weight');
+                            final weightHistory = provider.getMeasurementsByType('weight');
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => MeasurementDetailScreen(
+                                  guide: weightGuide,
+                                  history: weightHistory,
+                                ),
                               ),
-                            ),
-                          );
-                        },
-                      ),
-                      _buildStatCard(
-                        context,
-                        'Waist/Hip',
-                        whr?.toStringAsFixed(2) ?? '--',
-                        _getWHRCategory(whr, provider.currentUser?.gender),
-                        Icons.accessibility_new,
-                        AppTheme.secondaryColor,
-                        onTap: () {
-                          // For WHR, we can open Waist details
-                          final waistGuide = MeasurementGuide.guides.firstWhere((g) => g.type == 'waist');
-                          final waistHistory = provider.getMeasurementsByType('waist');
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => MeasurementDetailScreen(
-                                guide: waistGuide,
-                                history: waistHistory,
+                            );
+                          },
+                        );
+                      } else if (cat == 'whr') {
+                        return _buildStatCard(
+                          context,
+                          'Waist/Hip',
+                          whr?.toStringAsFixed(2) ?? '--',
+                          _getWHRCategory(whr, provider.currentUser?.gender),
+                          Icons.accessibility_new,
+                          AppTheme.secondaryColor,
+                          onTap: () {
+                            final waistGuide = MeasurementGuide.guides.firstWhere((g) => g.type == 'waist');
+                            final waistHistory = provider.getMeasurementsByType('waist');
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => MeasurementDetailScreen(
+                                  guide: waistGuide,
+                                  history: waistHistory,
+                                ),
                               ),
-                            ),
-                          );
-                        },
-                      ),
-                      _buildStatCard(
-                        context,
-                        'Weight',
-                        provider.getLatestMeasurement('weight')?.value
-                                .toStringAsFixed(1) ??
-                            '--',
-                        provider.getLatestMeasurement('weight')?.unit ?? 'kg',
-                        Icons.fitness_center,
-                        AppTheme.accentColor,
-                        onTap: () {
-                          final guide = MeasurementGuide.guides.firstWhere((g) => g.type == 'weight');
-                          final history = provider.getMeasurementsByType('weight');
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => MeasurementDetailScreen(
-                                guide: guide,
-                                history: history,
+                            );
+                          },
+                        );
+                      } else {
+                        final guide = MeasurementGuide.guides.firstWhere((g) => g.type == cat);
+                        final history = provider.getMeasurementsByType(cat);
+                        final latest = provider.getLatestMeasurement(cat);
+
+                        return _buildStatCard(
+                          context,
+                          guide.title,
+                          latest?.value.toStringAsFixed(1) ?? '--',
+                          latest?.unit ?? guide.unit,
+                          guide.icon,
+                          guide.color,
+                          onTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => MeasurementDetailScreen(
+                                  guide: guide,
+                                  history: history,
+                                ),
                               ),
-                            ),
-                          );
-                        },
-                      ),
-                      _buildStatCard(
-                        context,
-                        'Height',
-                        provider.getLatestMeasurement('height')?.value
-                                .toStringAsFixed(1) ??
-                            '--',
-                        provider.getLatestMeasurement('height')?.unit ?? 'cm',
-                        Icons.height,
-                        AppTheme.success,
-                        onTap: () {
-                          final guide = MeasurementGuide.guides.firstWhere((g) => g.type == 'height');
-                          final history = provider.getMeasurementsByType('height');
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => MeasurementDetailScreen(
-                                guide: guide,
-                                history: history,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
+                            );
+                          },
+                        );
+                      }
+                    },
                   );
                 },
               ),
