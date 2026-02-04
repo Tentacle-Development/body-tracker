@@ -2,7 +2,7 @@ name: body_tracker
 description: "Body measurement tracking app with health statistics and clothing size guide."
 publish_to: 'none'
 
-version: 1.7.0+20
+version: 1.8.0+21
 
 environment:
   sdk: ^3.10.8

@@ -12,6 +12,7 @@ import '../settings/backup_restore_screen.dart';
 import '../settings/dashboard_customize_screen.dart';
 import '../settings/reminder_settings_screen.dart';
 import '../settings/goals_screen.dart';
+import '../settings/clothing_size_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -638,6 +639,21 @@ class ProfileTab extends StatelessWidget {
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => const GoalsScreen(),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+            
+            _buildSettingsItem(
+              context,
+              icon: Icons.checkroom_outlined,
+              title: 'Clothing Sizes',
+              subtitle: 'Your size based on measurements',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const ClothingSizeScreen(),
                   ),
                 );
               },
