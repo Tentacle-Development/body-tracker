@@ -178,17 +178,56 @@ class BackupService {
 
   /// Import/restore from a backup directory
   Future<void> restoreBackup(String backupPath, int userId) async {
+    // If userId is -1, it means we are restoring into a new/empty app state
+    // We should try to read the user name from the backup first
+    int effectiveUserId = userId;
+    
+    if (userId == -1) {
+      effectiveUserId = await _createNewUserFromBackup(backupPath);
+    }
+
     // Import user profile (update existing)
-    await _importUserProfile(backupPath, userId);
+    await _importUserProfile(backupPath, effectiveUserId);
     
     // Import measurements
-    await _importMeasurements(backupPath, userId);
+    await _importMeasurements(backupPath, effectiveUserId);
     
     // Import settings
-    await _importSettings(backupPath, userId);
+    await _importSettings(backupPath, effectiveUserId);
     
     // Import photos
-    await _importPhotos(backupPath, userId);
+    await _importPhotos(backupPath, effectiveUserId);
+  }
+
+  Future<int> _createNewUserFromBackup(String backupPath) async {
+    final file = File(path.join(backupPath, 'user_profile.csv'));
+    String name = 'Restored User';
+    String gender = 'Other';
+    String dob = DateTime(1990, 1, 1).toIso8601String();
+
+    if (await file.exists()) {
+      final lines = await file.readAsLines();
+      if (lines.length >= 2) {
+        final values = _parseCsvLine(lines[1]);
+        if (values.length >= 3) {
+          name = values[1];
+          gender = values[2];
+          if (values.length >= 4) {
+            dob = values[3];
+          }
+        }
+      }
+    }
+
+    final db = await DatabaseService.instance.database;
+    final id = await db.insert('users', {
+      'name': name,
+      'gender': gender,
+      'date_of_birth': dob,
+      'created_at': DateTime.now().toIso8601String(),
+      'updated_at': DateTime.now().toIso8601String(),
+    });
+    return id;
   }
 
   Future<void> _importUserProfile(String backupPath, int userId) async {

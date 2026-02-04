@@ -52,11 +52,13 @@ class AppProvider extends ChangeNotifier {
       // Set current user to first user if exists
       if (_users.isNotEmpty) {
         _currentUser = _users.first;
-        await loadMeasurements();
-        await loadPhotos();
-        await loadDashboardCategories();
-        await loadSettings();
-        await loadGoals();
+        await Future.wait([
+          loadMeasurements(),
+          loadPhotos(),
+          loadDashboardCategories(),
+          loadSettings(),
+          loadGoals(),
+        ]);
       }
     } catch (e) {
       debugPrint('Error initializing app: $e');
@@ -219,12 +221,16 @@ class AppProvider extends ChangeNotifier {
 
     final interval = _settings!.reminderIntervalDays;
     if (interval > 0) {
-      await NotificationService.instance.scheduleReminder(
-        id: 1,
-        title: 'Time to Measure!',
-        body: "Don't forget to track your body progress today. Stay consistent!",
-        intervalDays: interval,
-      );
+      try {
+        await NotificationService.instance.scheduleReminder(
+          id: 1,
+          title: 'Time to Measure!',
+          body: "Don't forget to track your body progress today. Stay consistent!",
+          intervalDays: interval,
+        );
+      } catch (e) {
+        debugPrint('Error scheduling reminder: $e');
+      }
     } else {
       await NotificationService.instance.cancelAll();
     }
@@ -276,6 +282,28 @@ class AppProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint('Error creating user: $e');
       rethrow;
+    }
+  }
+
+  Future<void> clearAllData() async {
+    try {
+      final db = await DatabaseService.instance.database;
+      await db.delete('users');
+      await db.delete('measurements');
+      await db.delete('settings');
+      await db.delete('progress_photos');
+      await db.delete('goals');
+      
+      _currentUser = null;
+      _users = [];
+      _measurements = [];
+      _photos = [];
+      _goals = [];
+      _isFirstLaunch = true;
+      
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error clearing all data: $e');
     }
   }
 

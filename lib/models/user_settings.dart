@@ -4,6 +4,7 @@ class UserSettings {
   final int reminderIntervalDays;
   final String preferredUnitSystem;
   final bool isCloudSyncEnabled;
+  final bool isGoogleDriveSyncEnabled;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -13,6 +14,7 @@ class UserSettings {
     this.reminderIntervalDays = 30,
     this.preferredUnitSystem = 'metric',
     this.isCloudSyncEnabled = false,
+    this.isGoogleDriveSyncEnabled = false,
     DateTime? createdAt,
     DateTime? updatedAt,
   })  : createdAt = createdAt ?? DateTime.now(),
@@ -25,6 +27,7 @@ class UserSettings {
       'reminder_interval_days': reminderIntervalDays,
       'preferred_unit_system': preferredUnitSystem,
       'is_cloud_sync_enabled': isCloudSyncEnabled ? 1 : 0,
+      'is_google_drive_sync_enabled': isGoogleDriveSyncEnabled ? 1 : 0,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
@@ -37,6 +40,7 @@ class UserSettings {
       reminderIntervalDays: map['reminder_interval_days'] as int? ?? 30,
       preferredUnitSystem: map['preferred_unit_system'] as String? ?? 'metric',
       isCloudSyncEnabled: (map['is_cloud_sync_enabled'] as int? ?? 0) == 1,
+      isGoogleDriveSyncEnabled: (map['is_google_drive_sync_enabled'] as int? ?? 0) == 1,
       createdAt: DateTime.parse(map['created_at'] as String),
       updatedAt: DateTime.parse(map['updated_at'] as String),
     );
@@ -48,6 +52,7 @@ class UserSettings {
     int? reminderIntervalDays,
     String? preferredUnitSystem,
     bool? isCloudSyncEnabled,
+    bool? isGoogleDriveSyncEnabled,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -57,6 +62,7 @@ class UserSettings {
       reminderIntervalDays: reminderIntervalDays ?? this.reminderIntervalDays,
       preferredUnitSystem: preferredUnitSystem ?? this.preferredUnitSystem,
       isCloudSyncEnabled: isCloudSyncEnabled ?? this.isCloudSyncEnabled,
+      isGoogleDriveSyncEnabled: isGoogleDriveSyncEnabled ?? this.isGoogleDriveSyncEnabled,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

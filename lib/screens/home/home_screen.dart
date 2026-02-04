@@ -36,6 +36,7 @@ class _HomeScreenState extends State<HomeScreen> {
           MeasurementsTab(),
           PhotoGalleryScreen(),
           ProgressChartsTab(),
+          ClothingSizeScreen(),
           ProfileTab(),
         ],
       ),
@@ -71,9 +72,9 @@ class _HomeScreenState extends State<HomeScreen> {
               label: 'Photos',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.show_chart_outlined),
-              activeIcon: Icon(Icons.show_chart),
-              label: 'Progress',
+              icon: Icon(Icons.checkroom_outlined),
+              activeIcon: Icon(Icons.checkroom),
+              label: 'Sizes',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.person_outline),
@@ -652,21 +653,6 @@ class ProfileTab extends StatelessWidget {
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => const GoalsScreen(),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 12),
-            
-            _buildSettingsItem(
-              context,
-              icon: Icons.checkroom_outlined,
-              title: 'Clothing Sizes',
-              subtitle: 'Your size based on measurements',
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const ClothingSizeScreen(),
                   ),
                 );
               },

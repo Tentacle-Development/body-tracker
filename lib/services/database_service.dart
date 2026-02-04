@@ -164,6 +164,11 @@ class DatabaseService {
       // Add is_cloud_sync_enabled column to settings
       await db.execute('ALTER TABLE settings ADD COLUMN is_cloud_sync_enabled INTEGER DEFAULT 0');
     }
+
+    if (oldVersion < 6) {
+      // Add is_google_drive_sync_enabled column to settings
+      await db.execute('ALTER TABLE settings ADD COLUMN is_google_drive_sync_enabled INTEGER DEFAULT 0');
+    }
   }
 
   Future<void> close() async {

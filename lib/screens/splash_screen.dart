@@ -23,38 +23,37 @@ class _SplashScreenState extends State<SplashScreen>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 800),
     );
 
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: const Interval(0.0, 0.5, curve: Curves.easeIn),
+        curve: Curves.easeIn,
       ),
     );
 
-    _scaleAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: const Interval(0.0, 0.5, curve: Curves.easeOutBack),
+        curve: Curves.easeOutBack,
       ),
     );
 
     _controller.forward();
-    _initializeApp();
+    
+    // Switch screen as soon as animation finishes
+    _controller.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        _navigateToNext();
+      }
+    });
   }
 
-  Future<void> _initializeApp() async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    
+  void _navigateToNext() {
     if (!mounted) return;
     
     final provider = Provider.of<AppProvider>(context, listen: false);
-    await provider.initialize();
-
-    await Future.delayed(const Duration(milliseconds: 1000));
-
-    if (!mounted) return;
 
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
@@ -65,7 +64,7 @@ class _SplashScreenState extends State<SplashScreen>
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(opacity: animation, child: child);
         },
-        transitionDuration: const Duration(milliseconds: 500),
+        transitionDuration: const Duration(milliseconds: 400),
       ),
     );
   }
@@ -79,6 +78,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.backgroundColor,
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
