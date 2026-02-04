@@ -7,6 +7,7 @@ import '../measurements/guided_measurement_flow.dart';
 import '../measurements/measurement_input_screen.dart';
 import '../measurements/measurement_detail_screen.dart';
 import '../photos/photo_gallery_screen.dart';
+import 'progress_charts_tab.dart';
 import '../settings/backup_restore_screen.dart';
 import '../settings/dashboard_customize_screen.dart';
 
@@ -29,7 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
           DashboardTab(),
           MeasurementsTab(),
           PhotoGalleryScreen(),
-          SizesTab(),
+          ProgressChartsTab(),
           ProfileTab(),
         ],
       ),
@@ -65,9 +66,9 @@ class _HomeScreenState extends State<HomeScreen> {
               label: 'Photos',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.checkroom_outlined),
-              activeIcon: Icon(Icons.checkroom),
-              label: 'Sizes',
+              icon: Icon(Icons.show_chart_outlined),
+              activeIcon: Icon(Icons.show_chart),
+              label: 'Progress',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.person_outline),
