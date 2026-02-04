@@ -19,6 +19,11 @@ class _PhotoCompareScreenState extends State<PhotoCompareScreen> {
   double _overlayOpacity = 0.5;
   bool _showOverlay = false;
 
+  // Controllers to synchronize zoom/pan if needed (optional)
+  // For now we allow independent control as requested
+  final TransformationController _beforeController = TransformationController();
+  final TransformationController _afterController = TransformationController();
+
   @override
   void initState() {
     super.initState();
@@ -28,6 +33,20 @@ class _PhotoCompareScreenState extends State<PhotoCompareScreen> {
       _beforeIndex = 0;
       _afterIndex = _sortedPhotos.length - 1;
     }
+  }
+
+  @override
+  void dispose() {
+    _beforeController.dispose();
+    _afterController.dispose();
+    super.dispose();
+  }
+
+  void _resetZoom() {
+    setState(() {
+      _beforeController.value = Matrix4.identity();
+      _afterController.value = Matrix4.identity();
+    });
   }
 
   void _selectPhoto(bool isBefore) async {
@@ -96,7 +115,7 @@ class _PhotoCompareScreenState extends State<PhotoCompareScreen> {
                             child: Container(
                               padding: const EdgeInsets.all(4),
                               decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.6),
+                                color: Colors.black.withValues(alpha: 0.6),
                                 borderRadius: const BorderRadius.vertical(
                                   bottom: Radius.circular(8),
                                 ),
@@ -143,6 +162,11 @@ class _PhotoCompareScreenState extends State<PhotoCompareScreen> {
       appBar: AppBar(
         title: const Text('Compare Photos'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.restart_alt),
+            onPressed: _resetZoom,
+            tooltip: 'Reset Zoom',
+          ),
           IconButton(
             icon: Icon(_showOverlay ? Icons.layers : Icons.layers_outlined),
             onPressed: () => setState(() => _showOverlay = !_showOverlay),
@@ -207,11 +231,11 @@ class _PhotoCompareScreenState extends State<PhotoCompareScreen> {
     return Row(
       children: [
         Expanded(
-          child: _buildPhotoPanel(before, 'BEFORE'),
+          child: _buildPhotoPanel(before, 'BEFORE', _beforeController),
         ),
         Container(width: 2, color: Colors.grey[800]),
         Expanded(
-          child: _buildPhotoPanel(after, 'AFTER'),
+          child: _buildPhotoPanel(after, 'AFTER', _afterController),
         ),
       ],
     );
@@ -221,44 +245,64 @@ class _PhotoCompareScreenState extends State<PhotoCompareScreen> {
     return Stack(
       fit: StackFit.expand,
       children: [
-        Image.file(
-          File(before.imagePath),
-          fit: BoxFit.contain,
+        InteractiveViewer(
+          transformationController: _beforeController,
+          minScale: 1.0,
+          maxScale: 4.0,
+          child: Image.file(
+            File(before.imagePath),
+            fit: BoxFit.contain,
+          ),
         ),
         Opacity(
           opacity: _overlayOpacity,
-          child: Image.file(
-            File(after.imagePath),
-            fit: BoxFit.contain,
+          child: InteractiveViewer(
+            transformationController: _afterController,
+            minScale: 1.0,
+            maxScale: 4.0,
+            child: Image.file(
+              File(after.imagePath),
+              fit: BoxFit.contain,
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildPhotoPanel(ProgressPhoto photo, String label) {
+  Widget _buildPhotoPanel(ProgressPhoto photo, String label, TransformationController controller) {
     return Stack(
       fit: StackFit.expand,
       children: [
-        Image.file(
-          File(photo.imagePath),
-          fit: BoxFit.contain,
+        InteractiveViewer(
+          transformationController: controller,
+          minScale: 1.0,
+          maxScale: 4.0,
+          clipBehavior: Clip.hardEdge,
+          child: Center(
+            child: Image.file(
+              File(photo.imagePath),
+              fit: BoxFit.contain,
+            ),
+          ),
         ),
         Positioned(
           top: 8,
           left: 8,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.6),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
+          child: IgnorePointer(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
               ),
             ),
           ),
@@ -266,17 +310,19 @@ class _PhotoCompareScreenState extends State<PhotoCompareScreen> {
         Positioned(
           bottom: 8,
           left: 8,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.6),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              DateFormat('MMM d, y').format(photo.takenAt),
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
+          child: IgnorePointer(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                DateFormat('MMM d, y').format(photo.takenAt),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                ),
               ),
             ),
           ),
