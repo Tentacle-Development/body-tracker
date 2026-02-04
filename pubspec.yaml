@@ -35,6 +35,11 @@ dependencies:
   # Camera and image handling
   image_picker: ^1.0.7
   path_provider: ^2.1.2
+  
+  # Sharing and file handling
+  share_plus: ^7.2.1
+  archive: ^3.4.10
+  file_picker: ^6.1.1
 
 dev_dependencies:
   flutter_test:
