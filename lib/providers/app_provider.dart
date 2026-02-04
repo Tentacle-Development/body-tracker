@@ -264,10 +264,38 @@ class AppProvider extends ChangeNotifier {
       _users.add(newUser);
       _currentUser = newUser;
       _isFirstLaunch = false;
+      
+      // Load data for the new user
+      await loadMeasurements();
+      await loadPhotos();
+      await loadDashboardCategories();
+      await loadSettings();
+      await loadGoals();
+      
       notifyListeners();
     } catch (e) {
       debugPrint('Error creating user: $e');
       rethrow;
+    }
+  }
+
+  Future<void> deleteUser(int userId) async {
+    try {
+      final db = await DatabaseService.instance.database;
+      await db.delete('users', where: 'id = ?', whereArgs: [userId]);
+      _users.removeWhere((u) => u.id == userId);
+      
+      if (_currentUser?.id == userId) {
+        if (_users.isNotEmpty) {
+          setCurrentUser(_users.first);
+        } else {
+          _currentUser = null;
+          _isFirstLaunch = true;
+        }
+      }
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error deleting user: $e');
     }
   }
 
