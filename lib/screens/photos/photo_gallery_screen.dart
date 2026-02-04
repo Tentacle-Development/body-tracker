@@ -21,14 +21,11 @@ class _PhotoGalleryScreenState extends State<PhotoGalleryScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final ImagePicker _picker = ImagePicker();
-  List<ProgressPhoto> _allPhotos = [];
-  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
-    _loadPhotos();
   }
 
   @override
@@ -37,31 +34,9 @@ class _PhotoGalleryScreenState extends State<PhotoGalleryScreen>
     super.dispose();
   }
 
-  Future<void> _loadPhotos() async {
-    final appProvider = context.read<AppProvider>();
-    final userId = appProvider.currentUser?.id;
-    if (userId == null) return;
-
-    setState(() => _isLoading = true);
-    try {
-      final photos = await PhotoService.instance.getPhotos(userId);
-      setState(() {
-        _allPhotos = photos;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() => _isLoading = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load photos: $e')),
-        );
-      }
-    }
-  }
-
-  List<ProgressPhoto> _getPhotosForCategory(String? category) {
-    if (category == null) return _allPhotos;
-    return _allPhotos.where((p) => p.category == category).toList();
+  List<ProgressPhoto> _getPhotosForCategory(List<ProgressPhoto> allPhotos, String? category) {
+    if (category == null) return allPhotos;
+    return allPhotos.where((p) => p.category == category).toList();
   }
 
   Future<void> _takePhoto() async {
@@ -118,7 +93,7 @@ class _PhotoGalleryScreenState extends State<PhotoGalleryScreen>
       );
 
       await PhotoService.instance.addPhoto(photo);
-      await _loadPhotos();
+      await appProvider.loadPhotos();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -166,8 +141,8 @@ class _PhotoGalleryScreenState extends State<PhotoGalleryScreen>
     }
   }
 
-  void _openCompare() {
-    if (_allPhotos.length < 2) {
+  void _openCompare(List<ProgressPhoto> allPhotos) {
+    if (allPhotos.length < 2) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Need at least 2 photos to compare')),
       );
@@ -176,56 +151,60 @@ class _PhotoGalleryScreenState extends State<PhotoGalleryScreen>
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => PhotoCompareScreen(photos: _allPhotos),
+        builder: (context) => PhotoCompareScreen(photos: allPhotos),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Progress Photos'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.compare),
-            onPressed: _openCompare,
-            tooltip: 'Compare Photos',
-          ),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'All'),
-            Tab(text: 'Front'),
-            Tab(text: 'Side'),
-            Tab(text: 'Back'),
-          ],
-        ),
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : TabBarView(
+    return Consumer<AppProvider>(
+      builder: (context, appProvider, child) {
+        final allPhotos = appProvider.photos;
+        
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Progress Photos'),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.compare),
+                onPressed: () => _openCompare(allPhotos),
+                tooltip: 'Compare Photos',
+              ),
+            ],
+            bottom: TabBar(
               controller: _tabController,
-              children: [
-                _buildPhotoGrid(null),
-                _buildPhotoGrid('front'),
-                _buildPhotoGrid('side'),
-                _buildPhotoGrid('back'),
+              tabs: const [
+                Tab(text: 'All'),
+                Tab(text: 'Front'),
+                Tab(text: 'Side'),
+                Tab(text: 'Back'),
               ],
             ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _takePhoto,
-        icon: const Icon(Icons.camera_alt),
-        label: const Text('Add Photo'),
-      ),
+          ),
+          body: TabBarView(
+            controller: _tabController,
+            children: [
+              _buildPhotoGrid(allPhotos, null),
+              _buildPhotoGrid(allPhotos, 'front'),
+              _buildPhotoGrid(allPhotos, 'side'),
+              _buildPhotoGrid(allPhotos, 'back'),
+            ],
+          ),
+          floatingActionButton: FloatingActionButton.extended(
+            onPressed: _takePhoto,
+            icon: const Icon(Icons.camera_alt),
+            label: const Text('Add Photo'),
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildPhotoGrid(String? category) {
-    final photos = _getPhotosForCategory(category);
+  Widget _buildPhotoGrid(List<ProgressPhoto> photos, String? category) {
+    final filteredPhotos = _getPhotosForCategory(photos, category);
     
-    if (photos.isEmpty) {
+    if (filteredPhotos.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -259,9 +238,9 @@ class _PhotoGalleryScreenState extends State<PhotoGalleryScreen>
         crossAxisSpacing: 4,
         mainAxisSpacing: 4,
       ),
-      itemCount: photos.length,
+      itemCount: filteredPhotos.length,
       itemBuilder: (context, index) {
-        final photo = photos[index];
+        final photo = filteredPhotos[index];
         return _buildPhotoTile(photo);
       },
     );
@@ -277,7 +256,7 @@ class _PhotoGalleryScreenState extends State<PhotoGalleryScreen>
               photo: photo,
               onDelete: () async {
                 await PhotoService.instance.deletePhotoRecord(photo);
-                await _loadPhotos();
+                await context.read<AppProvider>().loadPhotos();
               },
             ),
           ),

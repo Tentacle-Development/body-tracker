@@ -21,7 +21,7 @@ class PhotoService {
   /// Save a photo to app storage and return the path
   Future<String> savePhoto(File imageFile, {String? category}) async {
     final photoDir = await _photoDirectory;
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final timestamp = DateTime.now().microsecondsSinceEpoch;
     final categoryPrefix = category ?? 'photo';
     final extension = path.extension(imageFile.path);
     final fileName = '${categoryPrefix}_$timestamp$extension';

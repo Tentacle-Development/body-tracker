@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
@@ -279,7 +280,10 @@ class BackupService {
 
   Future<void> _importPhotos(String backupPath, int userId) async {
     final file = File(path.join(backupPath, 'photos.csv'));
-    if (!await file.exists()) return;
+    if (!await file.exists()) {
+      debugPrint('Backup: photos.csv not found');
+      return;
+    }
     
     final lines = await file.readAsLines();
     if (lines.length < 2) return;
@@ -292,9 +296,15 @@ class BackupService {
       await PhotoService.instance.deletePhotoRecord(photo);
     }
     
+    int importedCount = 0;
     for (int i = 1; i < lines.length; i++) {
+      if (lines[i].trim().isEmpty) continue;
+      
       final values = _parseCsvLine(lines[i]);
-      if (values.length < 6) continue;
+      if (values.length < 6) {
+        debugPrint('Backup: Skipping photo line $i due to insufficient columns');
+        continue;
+      }
       
       final filename = values[1];
       final category = values[2];
@@ -309,26 +319,41 @@ class BackupService {
       
       if (await File(possiblePath).exists()) {
         sourcePath = possiblePath;
+      } else {
+        // Try fallback without category dir just in case
+        final fallbackPath = path.join(backupPath, 'photos', filename);
+        if (await File(fallbackPath).exists()) {
+          sourcePath = fallbackPath;
+        }
       }
       
-      if (sourcePath == null) continue;
+      if (sourcePath == null) {
+        debugPrint('Backup: Photo file not found: $possiblePath');
+        continue;
+      }
       
-      // Copy photo to app storage
-      final savedPath = await PhotoService.instance.savePhoto(
-        File(sourcePath),
-        category: category,
-      );
-      
-      // Add to database
-      await db.insert('progress_photos', {
-        'user_id': userId,
-        'image_path': savedPath,
-        'category': category,
-        'notes': notes,
-        'taken_at': takenAt.toIso8601String(),
-        'created_at': createdAt.toIso8601String(),
-      });
+      try {
+        // Copy photo to app storage
+        final savedPath = await PhotoService.instance.savePhoto(
+          File(sourcePath),
+          category: category,
+        );
+        
+        // Add to database
+        await db.insert('progress_photos', {
+          'user_id': userId,
+          'image_path': savedPath,
+          'category': category,
+          'notes': notes,
+          'taken_at': takenAt.toIso8601String(),
+          'created_at': createdAt.toIso8601String(),
+        });
+        importedCount++;
+      } catch (e) {
+        debugPrint('Backup: Failed to import photo $filename: $e');
+      }
     }
+    debugPrint('Backup: Imported $importedCount photos');
   }
 
   String _escapeCsv(String value) {
