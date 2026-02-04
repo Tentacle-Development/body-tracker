@@ -5,6 +5,7 @@ import '../../providers/app_provider.dart';
 import '../../utils/app_theme.dart';
 import '../measurements/guided_measurement_flow.dart';
 import '../measurements/measurement_input_screen.dart';
+import '../measurements/measurement_detail_screen.dart';
 import '../photos/photo_gallery_screen.dart';
 import '../settings/backup_restore_screen.dart';
 
@@ -111,20 +112,49 @@ class DashboardTab extends StatelessWidget {
                     mainAxisSpacing: 16,
                     children: [
                       _buildStatCard(
+                        context,
                         'BMI',
                         bmi?.toStringAsFixed(1) ?? '--',
                         _getBMICategory(bmi),
                         Icons.monitor_weight_outlined,
                         AppTheme.primaryColor,
+                        onTap: () {
+                          // For BMI, we can open Weight details as it's the primary driver
+                          final weightGuide = MeasurementGuide.guides.firstWhere((g) => g.type == 'weight');
+                          final weightHistory = provider.getMeasurementsByType('weight');
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => MeasurementDetailScreen(
+                                guide: weightGuide,
+                                history: weightHistory,
+                              ),
+                            ),
+                          );
+                        },
                       ),
                       _buildStatCard(
+                        context,
                         'Waist/Hip',
                         whr?.toStringAsFixed(2) ?? '--',
                         _getWHRCategory(whr, provider.currentUser?.gender),
                         Icons.accessibility_new,
                         AppTheme.secondaryColor,
+                        onTap: () {
+                          // For WHR, we can open Waist details
+                          final waistGuide = MeasurementGuide.guides.firstWhere((g) => g.type == 'waist');
+                          final waistHistory = provider.getMeasurementsByType('waist');
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => MeasurementDetailScreen(
+                                guide: waistGuide,
+                                history: waistHistory,
+                              ),
+                            ),
+                          );
+                        },
                       ),
                       _buildStatCard(
+                        context,
                         'Weight',
                         provider.getLatestMeasurement('weight')?.value
                                 .toStringAsFixed(1) ??
@@ -132,8 +162,21 @@ class DashboardTab extends StatelessWidget {
                         provider.getLatestMeasurement('weight')?.unit ?? 'kg',
                         Icons.fitness_center,
                         AppTheme.accentColor,
+                        onTap: () {
+                          final guide = MeasurementGuide.guides.firstWhere((g) => g.type == 'weight');
+                          final history = provider.getMeasurementsByType('weight');
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => MeasurementDetailScreen(
+                                guide: guide,
+                                history: history,
+                              ),
+                            ),
+                          );
+                        },
                       ),
                       _buildStatCard(
+                        context,
                         'Height',
                         provider.getLatestMeasurement('height')?.value
                                 .toStringAsFixed(1) ??
@@ -141,6 +184,18 @@ class DashboardTab extends StatelessWidget {
                         provider.getLatestMeasurement('height')?.unit ?? 'cm',
                         Icons.height,
                         AppTheme.success,
+                        onTap: () {
+                          final guide = MeasurementGuide.guides.firstWhere((g) => g.type == 'height');
+                          final history = provider.getMeasurementsByType('height');
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => MeasurementDetailScreen(
+                                guide: guide,
+                                history: history,
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     ],
                   );
@@ -154,62 +209,67 @@ class DashboardTab extends StatelessWidget {
   }
 
   Widget _buildStatCard(
+    BuildContext context,
     String title,
     String value,
     String subtitle,
     IconData icon,
-    Color color,
-  ) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.cardColor,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: 0.2),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, color: color, size: 24),
-            ),
-            const Spacer(),
-            Text(
-              value,
-              style: const TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 14,
-                color: AppTheme.textSecondary,
-              ),
-            ),
-            Text(
-              subtitle,
-              style: TextStyle(
-                fontSize: 12,
-                color: color,
-              ),
+    Color color, {
+    VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppTheme.cardColor,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: 0.2),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
           ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: color, size: 24),
+              ),
+              const Spacer(),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -363,15 +423,34 @@ class MeasurementsTab extends StatelessWidget {
                     itemBuilder: (context, index) {
                       final guide = MeasurementGuide.guides[index];
                       final latest = provider.getLatestMeasurement(guide.type);
+                      final history = provider.getMeasurementsByType(guide.type);
 
                       return GestureDetector(
                         onTap: () {
+                          if (latest == null) {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => MeasurementInputScreen(guide: guide),
+                              ),
+                            );
+                          } else {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => MeasurementDetailScreen(
+                                  guide: guide,
+                                  history: history,
+                                ),
+                              ),
+                            );
+                          }
+                        },
+                        onLongPress: latest != null ? () {
                           Navigator.of(context).push(
                             MaterialPageRoute(
                               builder: (_) => MeasurementInputScreen(guide: guide),
                             ),
                           );
-                        },
+                        } : null,
                         child: Container(
                           decoration: BoxDecoration(
                             color: AppTheme.cardColor,
