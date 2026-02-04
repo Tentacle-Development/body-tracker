@@ -9,12 +9,8 @@ import '../services/database_service.dart';
 import '../services/photo_service.dart';
 import '../services/notification_service.dart';
 import '../services/goal_service.dart';
-import '../services/cloud_sync_service.dart';
-import '../services/auth_service.dart';
 
 class AppProvider extends ChangeNotifier {
-  final CloudSyncService _syncService = CloudSyncService();
-  final AuthService _authService = AuthService();
   UserProfile? _currentUser;
   UserSettings? _settings;
   List<UserProfile> _users = [];
@@ -236,32 +232,6 @@ class AppProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> syncAllToCloud() async {
-    if (_settings?.isCloudSyncEnabled != true || _currentUser == null) return;
-
-    try {
-      _isLoading = true;
-      notifyListeners();
-
-      // Sync measurements
-      for (final m in _measurements) {
-        await _syncService.syncMeasurement(m);
-      }
-
-      // Sync photos
-      for (final p in _photos) {
-        await _syncService.syncPhoto(p);
-      }
-
-      debugPrint('Cloud sync completed successfully');
-    } catch (e) {
-      debugPrint('Error during cloud sync: $e');
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-
   Future<void> createUser(UserProfile user) async {
     try {
       final db = await DatabaseService.instance.database;
@@ -333,12 +303,6 @@ class AppProvider extends ChangeNotifier {
       final id = await db.insert('measurements', measurement.toMap());
       final newMeasurement = measurement.copyWith(id: id);
       _measurements.insert(0, newMeasurement);
-      
-      // Trigger cloud sync if enabled
-      if (_settings?.isCloudSyncEnabled == true) {
-        _syncService.syncMeasurement(newMeasurement);
-      }
-      
       notifyListeners();
     } catch (e) {
       debugPrint('Error adding measurement: $e');
@@ -350,12 +314,6 @@ class AppProvider extends ChangeNotifier {
     try {
       final newPhoto = await PhotoService.instance.addPhoto(photo);
       _photos.insert(0, newPhoto);
-      
-      // Trigger cloud sync if enabled
-      if (_settings?.isCloudSyncEnabled == true) {
-        _syncService.syncPhoto(newPhoto);
-      }
-      
       notifyListeners();
     } catch (e) {
       debugPrint('Error adding photo: $e');

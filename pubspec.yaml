@@ -41,15 +41,9 @@ dependencies:
   archive: ^4.0.7
   file_picker: ^10.3.10
   timezone: ^0.9.4
-
-  # Firebase for Cloud Sync
-  firebase_core: ^2.24.2
-  firebase_auth: ^4.15.3
-  cloud_firestore: ^4.13.6
-  firebase_storage: ^11.5.6
-  google_sign_in: ^6.2.1
   googleapis: ^13.2.0
   googleapis_auth: ^1.6.0
+  google_sign_in: ^6.2.1
 
 dev_dependencies:
   flutter_test:
