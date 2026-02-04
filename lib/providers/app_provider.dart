@@ -1,18 +1,22 @@
 import 'package:flutter/foundation.dart';
 import '../models/user_profile.dart';
 import '../models/measurement.dart';
+import '../models/progress_photo.dart';
 import '../services/database_service.dart';
+import '../services/photo_service.dart';
 
 class AppProvider extends ChangeNotifier {
   UserProfile? _currentUser;
   List<UserProfile> _users = [];
   List<Measurement> _measurements = [];
+  List<ProgressPhoto> _photos = [];
   bool _isLoading = true;
   bool _isFirstLaunch = true;
 
   UserProfile? get currentUser => _currentUser;
   List<UserProfile> get users => _users;
   List<Measurement> get measurements => _measurements;
+  List<ProgressPhoto> get photos => _photos;
   bool get isLoading => _isLoading;
   bool get isFirstLaunch => _isFirstLaunch;
 
@@ -34,6 +38,7 @@ class AppProvider extends ChangeNotifier {
       if (_users.isNotEmpty) {
         _currentUser = _users.first;
         await loadMeasurements();
+        await loadPhotos();
       }
     } catch (e) {
       debugPrint('Error initializing app: $e');
@@ -59,6 +64,17 @@ class AppProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       debugPrint('Error loading measurements: $e');
+    }
+  }
+
+  Future<void> loadPhotos() async {
+    if (_currentUser == null || _currentUser!.id == null) return;
+
+    try {
+      _photos = await PhotoService.instance.getPhotos(_currentUser!.id!);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error loading photos: $e');
     }
   }
 
@@ -93,6 +109,7 @@ class AppProvider extends ChangeNotifier {
   void setCurrentUser(UserProfile user) {
     _currentUser = user;
     loadMeasurements();
+    loadPhotos();
   }
 
   List<Measurement> getMeasurementsByType(String type) {
