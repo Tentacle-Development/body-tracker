@@ -4,9 +4,11 @@ import '../models/user_profile.dart';
 import '../models/measurement.dart';
 import '../models/progress_photo.dart';
 import '../models/user_settings.dart';
+import '../models/goal.dart';
 import '../services/database_service.dart';
 import '../services/photo_service.dart';
 import '../services/notification_service.dart';
+import '../services/goal_service.dart';
 
 class AppProvider extends ChangeNotifier {
   UserProfile? _currentUser;
@@ -14,6 +16,7 @@ class AppProvider extends ChangeNotifier {
   List<UserProfile> _users = [];
   List<Measurement> _measurements = [];
   List<ProgressPhoto> _photos = [];
+  List<Goal> _goals = [];
   List<String> _dashboardCategories = ['bmi', 'whr', 'weight', 'height'];
   bool _isLoading = true;
   bool _isFirstLaunch = true;
@@ -23,6 +26,7 @@ class AppProvider extends ChangeNotifier {
   List<UserProfile> get users => _users;
   List<Measurement> get measurements => _measurements;
   List<ProgressPhoto> get photos => _photos;
+  List<Goal> get goals => _goals;
   List<String> get dashboardCategories => _dashboardCategories;
   bool get isLoading => _isLoading;
   bool get isFirstLaunch => _isFirstLaunch;
@@ -48,6 +52,7 @@ class AppProvider extends ChangeNotifier {
         await loadPhotos();
         await loadDashboardCategories();
         await loadSettings();
+        await loadGoals();
       }
     } catch (e) {
       debugPrint('Error initializing app: $e');
@@ -141,6 +146,51 @@ class AppProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> loadGoals() async {
+    if (_currentUser == null || _currentUser!.id == null) return;
+
+    try {
+      _goals = await GoalService.instance.getGoals(_currentUser!.id!);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error loading goals: $e');
+    }
+  }
+
+  Future<void> addGoal(Goal goal) async {
+    try {
+      final newGoal = await GoalService.instance.addGoal(goal);
+      _goals.add(newGoal);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error adding goal: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> updateGoal(Goal goal) async {
+    try {
+      await GoalService.instance.updateGoal(goal);
+      final index = _goals.indexWhere((g) => g.id == goal.id);
+      if (index != -1) {
+        _goals[index] = goal;
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error updating goal: $e');
+    }
+  }
+
+  Future<void> deleteGoal(int goalId) async {
+    try {
+      await GoalService.instance.deleteGoal(goalId);
+      _goals.removeWhere((g) => g.id == goalId);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error deleting goal: $e');
+    }
+  }
+
   Future<void> updateSettings(UserSettings newSettings) async {
     try {
       final db = await DatabaseService.instance.database;
@@ -211,6 +261,7 @@ class AppProvider extends ChangeNotifier {
     loadPhotos();
     loadDashboardCategories();
     loadSettings();
+    loadGoals();
     notifyListeners();
   }
 

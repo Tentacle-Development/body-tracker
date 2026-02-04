@@ -81,6 +81,22 @@ class DatabaseService {
       )
     ''');
 
+    // Goals table
+    await db.execute('''
+      CREATE TABLE goals (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        type TEXT NOT NULL,
+        start_value REAL NOT NULL,
+        target_value REAL NOT NULL,
+        start_date TEXT NOT NULL,
+        target_date TEXT NOT NULL,
+        is_completed INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+      )
+    ''');
+
     // Create indexes for better performance
     await db.execute(
         'CREATE INDEX idx_measurements_user_id ON measurements (user_id)');
@@ -92,6 +108,8 @@ class DatabaseService {
         'CREATE INDEX idx_progress_photos_user_id ON progress_photos (user_id)');
     await db.execute(
         'CREATE INDEX idx_progress_photos_taken_at ON progress_photos (taken_at)');
+    await db.execute(
+        'CREATE INDEX idx_goals_user_id ON goals (user_id)');
   }
 
   Future<void> _upgradeDB(Database db, int oldVersion, int newVersion) async {
@@ -119,6 +137,26 @@ class DatabaseService {
     if (oldVersion < 3) {
       // Add weight column to progress_photos
       await db.execute('ALTER TABLE progress_photos ADD COLUMN weight REAL');
+    }
+
+    if (oldVersion < 4) {
+      // Add goals table
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS goals (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          type TEXT NOT NULL,
+          start_value REAL NOT NULL,
+          target_value REAL NOT NULL,
+          start_date TEXT NOT NULL,
+          target_date TEXT NOT NULL,
+          is_completed INTEGER DEFAULT 0,
+          created_at TEXT NOT NULL,
+          FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+        )
+      ''');
+      await db.execute(
+          'CREATE INDEX IF NOT EXISTS idx_goals_user_id ON goals (user_id)');
     }
   }
 
