@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'utils/app_theme.dart';
 import 'providers/app_provider.dart';
 import 'screens/splash_screen.dart';
@@ -7,6 +8,13 @@ import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  try {
+    await Firebase.initializeApp();
+  } catch (e) {
+    print('Firebase initialization failed: $e');
+  }
+  
   await NotificationService.instance.initialize();
   runApp(const MyApp());
 }

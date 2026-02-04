@@ -8,6 +8,7 @@ import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import '../../providers/app_provider.dart';
 import '../../services/backup_service.dart';
+import '../../services/auth_service.dart';
 import '../../utils/app_theme.dart';
 
 class BackupRestoreScreen extends StatefulWidget {
@@ -18,9 +19,45 @@ class BackupRestoreScreen extends StatefulWidget {
 }
 
 class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
+  final AuthService _authService = AuthService();
   bool _isExporting = false;
   bool _isImporting = false;
+  bool _isSyncing = false;
   String? _statusMessage;
+
+  Future<void> _toggleCloudSync(bool enabled) async {
+    final appProvider = context.read<AppProvider>();
+    if (enabled) {
+      try {
+        final user = await _authService.signInWithGoogle();
+        if (user != null) {
+          final settings = appProvider.settings!.copyWith(isCloudSyncEnabled: true);
+          await appProvider.updateSettings(settings);
+          
+          setState(() {
+            _isSyncing = true;
+            _statusMessage = 'Syncing data to cloud...';
+          });
+          
+          await appProvider.syncAllToCloud();
+          
+          setState(() {
+            _isSyncing = false;
+            _statusMessage = 'Cloud sync active for ${user.email}';
+          });
+        } else {
+          setState(() => _statusMessage = 'Login cancelled');
+        }
+      } catch (e) {
+        _showError('Cloud sync failed: $e');
+      }
+    } else {
+      await _authService.signOut();
+      final settings = appProvider.settings!.copyWith(isCloudSyncEnabled: false);
+      await appProvider.updateSettings(settings);
+      setState(() => _statusMessage = 'Cloud sync disabled');
+    }
+  }
 
   Future<void> _exportBackup() async {
     final appProvider = context.read<AppProvider>();
@@ -259,6 +296,10 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
             ),
             const SizedBox(height: 24),
 
+            // Cloud Sync Section
+            _buildCloudSyncCard(),
+            const SizedBox(height: 24),
+
             // Export button
             _buildActionCard(
               icon: Icons.upload_rounded,
@@ -409,6 +450,90 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
           Icon(Icons.check, color: Colors.green, size: 16),
           const SizedBox(width: 8),
           Text(text, style: TextStyle(color: Colors.grey[400])),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCloudSyncCard() {
+    final appProvider = context.watch<AppProvider>();
+    final isEnabled = appProvider.settings?.isCloudSyncEnabled ?? false;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppTheme.cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isEnabled ? AppTheme.primaryColor.withValues(alpha: 0.5) : Colors.transparent,
+        ),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: (isEnabled ? AppTheme.primaryColor : Colors.grey).withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  isEnabled ? Icons.cloud_done_rounded : Icons.cloud_off_rounded,
+                  color: isEnabled ? AppTheme.primaryColor : Colors.grey,
+                ),
+              ),
+              const SizedBox(width: 16),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Cloud Sync',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    Text(
+                      'Auto-backup to Firebase',
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Switch(
+                value: isEnabled,
+                onChanged: _isSyncing ? null : _toggleCloudSync,
+                activeColor: AppTheme.primaryColor,
+              ),
+            ],
+          ),
+          if (isEnabled) ...[
+            const Divider(height: 32),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Last synced: Just now',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                TextButton.icon(
+                  onPressed: _isSyncing ? null : () => _toggleCloudSync(true),
+                  icon: const Icon(Icons.sync, size: 16),
+                  label: const Text('Sync Now', style: TextStyle(fontSize: 12)),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
