@@ -4,6 +4,7 @@ class ProgressPhoto {
   final String imagePath;
   final String? category; // front, side, back
   final String? notes;
+  final double? weight;
   final DateTime takenAt;
   final DateTime createdAt;
 
@@ -13,6 +14,7 @@ class ProgressPhoto {
     required this.imagePath,
     this.category,
     this.notes,
+    this.weight,
     DateTime? takenAt,
     DateTime? createdAt,
   })  : takenAt = takenAt ?? DateTime.now(),
@@ -25,6 +27,7 @@ class ProgressPhoto {
       'image_path': imagePath,
       'category': category,
       'notes': notes,
+      'weight': weight,
       'taken_at': takenAt.toIso8601String(),
       'created_at': createdAt.toIso8601String(),
     };
@@ -37,6 +40,7 @@ class ProgressPhoto {
       imagePath: map['image_path'] as String,
       category: map['category'] as String?,
       notes: map['notes'] as String?,
+      weight: map['weight'] != null ? (map['weight'] as num).toDouble() : null,
       takenAt: DateTime.parse(map['taken_at'] as String),
       createdAt: DateTime.parse(map['created_at'] as String),
     );
@@ -48,6 +52,7 @@ class ProgressPhoto {
     String? imagePath,
     String? category,
     String? notes,
+    double? weight,
     DateTime? takenAt,
     DateTime? createdAt,
   }) {
@@ -57,6 +62,7 @@ class ProgressPhoto {
       imagePath: imagePath ?? this.imagePath,
       category: category ?? this.category,
       notes: notes ?? this.notes,
+      weight: weight ?? this.weight,
       takenAt: takenAt ?? this.takenAt,
       createdAt: createdAt ?? this.createdAt,
     );

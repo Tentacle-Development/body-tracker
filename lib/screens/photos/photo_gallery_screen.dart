@@ -80,6 +80,10 @@ class _PhotoGalleryScreenState extends State<PhotoGalleryScreen>
       final userId = appProvider.currentUser?.id;
       if (userId == null) return;
 
+      // Show weight entry dialog (optional)
+      final latestWeight = appProvider.getLatestMeasurement('weight');
+      final weight = await _showWeightDialog(latestWeight?.value);
+
       // Save the photo
       final savedPath = await PhotoService.instance.savePhoto(
         File(image.path),
@@ -90,6 +94,7 @@ class _PhotoGalleryScreenState extends State<PhotoGalleryScreen>
         userId: userId,
         imagePath: savedPath,
         category: category,
+        weight: weight,
       );
 
       await PhotoService.instance.addPhoto(photo);
@@ -124,6 +129,54 @@ class _PhotoGalleryScreenState extends State<PhotoGalleryScreen>
             );
           }).toList(),
         ),
+      ),
+    );
+  }
+
+  Future<double?> _showWeightDialog(double? initialWeight) async {
+    final controller = TextEditingController(
+      text: initialWeight?.toStringAsFixed(1) ?? '',
+    );
+    final appProvider = context.read<AppProvider>();
+    final unit = appProvider.getLatestMeasurement('weight')?.unit ?? 'kg';
+
+    return showDialog<double>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Enter Weight'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Recording your weight with the photo helps track progress better.',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: InputDecoration(
+                labelText: 'Weight ($unit)',
+                border: const OutlineInputBorder(),
+                suffixText: unit,
+              ),
+              autofocus: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Skip'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final value = double.tryParse(controller.text);
+              Navigator.pop(context, value);
+            },
+            child: const Text('Save'),
+          ),
+        ],
       ),
     );
   }
@@ -299,13 +352,27 @@ class _PhotoGalleryScreenState extends State<PhotoGalleryScreen>
                   ),
                 ),
                 padding: const EdgeInsets.all(4),
-                child: Text(
-                  DateFormat('MMM d').format(photo.takenAt),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                  ),
-                  textAlign: TextAlign.center,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (photo.weight != null)
+                      Text(
+                        '${photo.weight} kg',
+                        style: const TextStyle(
+                          color: Colors.blueAccent,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    Text(
+                      DateFormat('MMM d').format(photo.takenAt),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
                 ),
               ),
             ),
