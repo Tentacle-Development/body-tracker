@@ -230,12 +230,12 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
       final zipPath = await _createZipFromDirectory(backupPath);
       
       setState(() => _statusMessage = 'Uploading to Google Drive...');
-      final success = await GoogleDriveService.instance.uploadBackup(zipPath);
+      final result = await GoogleDriveService.instance.uploadBackup(zipPath);
       
-      if (success) {
+      if (result.success) {
         setState(() => _statusMessage = 'Backup uploaded to Google Drive!');
       } else {
-        _showError('Failed to upload backup to Google Drive');
+        _showError('Failed to upload backup: ${result.error}');
       }
 
       await Directory(backupPath).delete(recursive: true);

@@ -78,9 +78,9 @@ class GoogleDriveService {
     return authenticateClient;
   }
 
-  Future<bool> uploadBackup(String filePath) async {
+  Future<({bool success, String? error})> uploadBackup(String filePath) async {
     final client = await _getAuthClient();
-    if (client == null) return false;
+    if (client == null) return (success: false, error: 'Failed to create authenticated client');
 
     try {
       final driveApi = drive.DriveApi(client);
@@ -94,6 +94,7 @@ class GoogleDriveService {
       final media = drive.Media(file.openRead(), file.lengthSync());
       
       // Check if file already exists to update it or create new
+      debugPrint('Google Drive: Checking for existing backup in appDataFolder...');
       final fileList = await driveApi.files.list(
         q: "name = '${driveFile.name}' and 'appDataFolder' in parents",
         spaces: 'appDataFolder',
@@ -102,17 +103,23 @@ class GoogleDriveService {
       if (fileList.files != null && fileList.files!.isNotEmpty) {
         // Update existing
         final existingId = fileList.files!.first.id!;
-        await driveApi.files.update(drive.File(), existingId, uploadMedia: media);
+        debugPrint('Google Drive: Updating existing file $existingId');
+        await driveApi.files.update(
+          drive.File(name: driveFile.name), 
+          existingId, 
+          uploadMedia: media,
+        );
         debugPrint('Updated existing backup on Google Drive');
       } else {
         // Create new
+        debugPrint('Google Drive: Creating new file in appDataFolder');
         await driveApi.files.create(driveFile, uploadMedia: media);
         debugPrint('Created new backup on Google Drive');
       }
-      return true;
+      return (success: true, error: null);
     } catch (e) {
       debugPrint('Error uploading to Google Drive: $e');
-      return false;
+      return (success: false, error: e.toString());
     } finally {
       client.close();
     }
