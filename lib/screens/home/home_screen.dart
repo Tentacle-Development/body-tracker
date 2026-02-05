@@ -60,7 +60,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Consumer<AppProvider>(
       builder: (context, provider, child) {
-        final enabledTabs = provider.settings?.enabledTabs ?? 
+        final settings = provider.settings;
+        final enabledTabs = settings?.enabledTabs ?? 
             ['dashboard', 'measure', 'photos', 'progress', 'sizes', 'profile'];
 
         final List<Widget> tabScreens = [];
@@ -101,8 +102,9 @@ class _HomeScreenState extends State<HomeScreen> {
         }
 
         return Scaffold(
+          key: ValueKey('home_scaffold_${settings?.updatedAt.millisecondsSinceEpoch ?? 0}_${enabledTabs.length}'),
           body: IndexedStack(
-            key: ValueKey('stack_${enabledTabs.join('_')}'),
+            key: ValueKey('stack_${settings?.updatedAt.millisecondsSinceEpoch ?? 0}_${enabledTabs.join('_')}'),
             index: _currentIndex,
             children: tabScreens.isEmpty ? [const Center(child: CircularProgressIndicator())] : tabScreens,
           ),
@@ -123,7 +125,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8.0),
                 child: Row(
-                  key: ValueKey('nav_${enabledTabs.join('_')}'),
+                  key: ValueKey('nav_row_${settings?.updatedAt.millisecondsSinceEpoch ?? 0}_${enabledTabs.length}'),
                   mainAxisSize: MainAxisSize.min,
                   children: navItems,
                 ),

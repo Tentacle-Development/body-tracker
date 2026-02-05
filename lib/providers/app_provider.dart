@@ -194,13 +194,15 @@ class AppProvider extends ChangeNotifier {
   Future<void> updateSettings(UserSettings newSettings) async {
     try {
       final db = await DatabaseService.instance.database;
+      final settingsToSave = newSettings.copyWith(updatedAt: DateTime.now());
+      
       await db.update(
         'settings',
-        newSettings.toMap(),
+        settingsToSave.toMap(),
         where: 'user_id = ?',
-        whereArgs: [newSettings.userId],
+        whereArgs: [settingsToSave.userId],
       );
-      _settings = newSettings;
+      _settings = settingsToSave;
       
       // Resync notifications
       await _syncReminders();

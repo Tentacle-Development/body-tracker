@@ -43,7 +43,7 @@ class _NavigationSettingsScreenState extends State<NavigationSettingsScreen> {
     });
   }
 
-  void _save() {
+  Future<void> _save() async {
     if (!_enabledTabs.contains('profile')) {
       _enabledTabs.add('profile');
     }
@@ -57,12 +57,14 @@ class _NavigationSettingsScreenState extends State<NavigationSettingsScreen> {
     
     final provider = context.read<AppProvider>();
     final newSettings = provider.settings!.copyWith(enabledTabs: _enabledTabs);
-    provider.updateSettings(newSettings);
+    await provider.updateSettings(newSettings);
     
     // Explicitly notify provider to refresh
-    provider.loadSettings();
+    await provider.loadSettings();
 
-    Navigator.pop(context);
+    if (mounted) {
+      Navigator.pop(context);
+    }
   }
 
   @override

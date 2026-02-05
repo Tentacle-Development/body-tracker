@@ -37,8 +37,38 @@ class BackupService {
     
     // Export photos with metadata
     await _exportPhotos(userId, backupDir.path);
+
+    // Export goals
+    await _exportGoals(userId, backupDir.path);
     
     return backupDir.path;
+  }
+
+  Future<void> _exportGoals(int userId, String backupPath) async {
+    final db = await DatabaseService.instance.database;
+    final goals = await db.query('goals', where: 'user_id = ?', whereArgs: [userId]);
+
+    if (goals.isEmpty) return;
+
+    final csvLines = <String>[];
+    csvLines.add('id,user_id,type,start_value,target_value,start_date,target_date,is_completed,created_at');
+
+    for (final g in goals) {
+      csvLines.add([
+        g['id'],
+        g['user_id'],
+        _escapeCsv(g['type'] as String),
+        g['start_value'],
+        g['target_value'],
+        g['start_date'],
+        g['target_date'],
+        g['is_completed'],
+        g['created_at'],
+      ].join(','));
+    }
+
+    final file = File(path.join(backupPath, 'goals.csv'));
+    await file.writeAsString(csvLines.join('\n'));
   }
 
   Future<void> _exportUserProfile(int userId, String backupPath) async {
@@ -193,6 +223,37 @@ class BackupService {
     
     // Import photos
     await _importPhotos(backupPath, targetUserId);
+
+    // Import goals
+    await _importGoals(backupPath, targetUserId);
+  }
+
+  Future<void> _importGoals(String backupPath, int userId) async {
+    final file = File(path.join(backupPath, 'goals.csv'));
+    if (!await file.exists()) return;
+
+    final lines = await file.readAsLines();
+    if (lines.length < 2) return;
+
+    final db = await DatabaseService.instance.database;
+    await db.delete('goals', where: 'user_id = ?', whereArgs: [userId]);
+
+    for (int i = 1; i < lines.length; i++) {
+      if (lines[i].trim().isEmpty) continue;
+      final values = _parseCsvLine(lines[i]);
+      if (values.length < 9) continue;
+
+      await db.insert('goals', {
+        'user_id': userId,
+        'type': values[2],
+        'start_value': double.tryParse(values[3]) ?? 0.0,
+        'target_value': double.tryParse(values[4]) ?? 0.0,
+        'start_date': values[5],
+        'target_date': values[6],
+        'is_completed': int.tryParse(values[7]) ?? 0,
+        'created_at': values[8],
+      });
+    }
   }
 
   Future<int> _restoreUserFromBackup(String backupPath) async {

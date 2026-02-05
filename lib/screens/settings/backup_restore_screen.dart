@@ -146,7 +146,10 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
       setState(() => _statusMessage = 'Restoring data...');
 
       // If we don't have a user (onboarding), we perform a "clean restore"
-      // which will include the users table from the backup.
+      if (userId == null) {
+        await appProvider.clearAllData();
+      }
+      
       await BackupService.instance.restoreBackup(extractPath, userId);
 
       // Reload app data
