@@ -10,17 +10,17 @@ A comprehensive Flutter application for tracking body measurements, visual progr
 - **🎯 Goal Setting**: Set target values and dates for your measurements and track your progress with visual indicators.
 - **👥 Multiple Profiles**: Support for multiple users within the same app—perfect for partners or families.
 - **👗 Clothing Size Guide**: Get suggested clothing sizes (tops and pants) based on your latest body measurements (Men/Women).
-- **☁️ Cloud Sync (Optional)**: Securely back up your data to Google Firebase (Auth, Firestore, Storage) to access it across devices.
+- **☁️ Cloud Backup**: Securely back up your data to your private Google Drive (App Data folder) to keep your measurements and photos safe and private.
 - **🔔 Reminders**: Configurable push notifications to stay consistent with your measurements.
-- **🎨 Customizable Dashboard**: Personalize your home screen by choosing and reordering the metrics that matter most to you.
-- **💾 Backup & Restore**: Export all your data as a ZIP file for local backups.
+- **🎨 Customizable Navigation**: Choose which tabs appear in the bottom navigation bar and reorder them to suit your workflow.
+- **💾 Backup & Restore**: Export all your data as a ZIP file for local backups or use Google Drive sync.
 
 ## 🛠️ Tech Stack
 
 - **Framework**: [Flutter](https://flutter.dev/)
 - **State Management**: [Provider](https://pub.dev/packages/provider)
 - **Local Database**: [SQLite](https://pub.dev/packages/sqflite)
-- **Cloud Backend**: [Firebase](https://firebase.google.com/) (Auth, Firestore, Storage)
+- **Cloud Backend**: [Google Drive API](https://developers.google.com/drive) (App Data Folder)
 - **Charts**: [FL Chart](https://pub.dev/packages/fl_chart)
 - **Notifications**: [Flutter Local Notifications](https://pub.dev/packages/flutter_local_notifications)
 
@@ -45,12 +45,7 @@ A comprehensive Flutter application for tracking body measurements, visual progr
     flutter pub get
     ```
 
-3.  **Firebase Setup**:
-    - Create a new project in the [Firebase Console](https://console.firebase.google.com/).
-    - Add an Android app and download the `google-services.json`.
-    - Place `google-services.json` in `android/app/`.
-
-4.  **Run the app**:
+3.  **Run the app**:
     ```bash
     flutter run
     ```
