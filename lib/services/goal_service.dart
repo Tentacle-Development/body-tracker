@@ -1,9 +1,18 @@
+import 'package:meta/meta.dart';
 import '../models/goal.dart';
 import 'database_service.dart';
 
 class GoalService {
-  static final GoalService instance = GoalService._init();
+  static GoalService _instance = GoalService._init();
+  static GoalService get instance => _instance;
+
+  @visibleForTesting
+  static set instance(GoalService newInstance) => _instance = newInstance;
+
   GoalService._init();
+  
+  @visibleForTesting
+  GoalService(); // Public constructor for testing or mocking
 
   Future<List<Goal>> getGoals(int userId) async {
     final db = await DatabaseService.instance.database;

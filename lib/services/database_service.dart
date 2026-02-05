@@ -1,12 +1,20 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:meta/meta.dart';
 import '../utils/constants.dart';
 
 class DatabaseService {
   static Database? _database;
-  static final DatabaseService instance = DatabaseService._init();
+  static DatabaseService _instance = DatabaseService._init();
+  static DatabaseService get instance => _instance;
+
+  @visibleForTesting
+  static set instance(DatabaseService newInstance) => _instance = newInstance;
 
   DatabaseService._init();
+
+  @visibleForTesting
+  DatabaseService();
 
   Future<Database> get database async {
     if (_database != null) return _database!;
