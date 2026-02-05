@@ -31,9 +31,11 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
       try {
         final account = await _driveService.signIn();
         if (account != null) {
-          final settings = appProvider.settings!.copyWith(isGoogleDriveSyncEnabled: true);
-          await appProvider.updateSettings(settings);
-          setState(() => _statusMessage = 'Google Drive sync enabled for ${account.email}');
+          if (appProvider.settings != null) {
+            final settings = appProvider.settings!.copyWith(isGoogleDriveSyncEnabled: true);
+            await appProvider.updateSettings(settings);
+          }
+          setState(() => _statusMessage = 'Google Drive linked for ${account.email}');
         } else {
           setState(() => _statusMessage = 'Google Sign-In cancelled');
         }
@@ -42,9 +44,11 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
       }
     } else {
       await _driveService.signOut();
-      final settings = appProvider.settings!.copyWith(isGoogleDriveSyncEnabled: false);
-      await appProvider.updateSettings(settings);
-      setState(() => _statusMessage = 'Google Drive sync disabled');
+      if (appProvider.settings != null) {
+        final settings = appProvider.settings!.copyWith(isGoogleDriveSyncEnabled: false);
+        await appProvider.updateSettings(settings);
+      }
+      setState(() => _statusMessage = 'Google Drive unlinked');
     }
   }
 
@@ -516,7 +520,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
 
   Widget _buildGoogleDriveCard() {
     final appProvider = context.watch<AppProvider>();
-    final isEnabled = appProvider.settings?.isGoogleDriveSyncEnabled ?? false;
+    final isEnabled = (appProvider.settings?.isGoogleDriveSyncEnabled ?? false) || _driveService.currentUser != null;
 
     return Container(
       padding: const EdgeInsets.all(20),

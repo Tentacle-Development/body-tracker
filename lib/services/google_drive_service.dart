@@ -18,6 +18,7 @@ class GoogleDriveService {
   );
 
   GoogleSignInAccount? _currentUser;
+  GoogleSignInAccount? get currentUser => _currentUser;
 
   Future<GoogleSignInAccount?> signIn() async {
     try {

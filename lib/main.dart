@@ -8,6 +8,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   final appProvider = AppProvider();
+  await appProvider.initialize();
   
   runApp(
     ChangeNotifierProvider.value(
