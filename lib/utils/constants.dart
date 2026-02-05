@@ -5,7 +5,7 @@ class AppConstants {
 
   // Database
   static const String dbName = 'body_tracker.db';
-  static const int dbVersion = 6;
+  static const int dbVersion = 7;
 
   // Photo Categories
   static const List<String> photoCategories = ['front', 'side', 'back'];

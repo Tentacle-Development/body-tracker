@@ -5,6 +5,7 @@ class UserSettings {
   final String preferredUnitSystem;
   final bool isCloudSyncEnabled;
   final bool isGoogleDriveSyncEnabled;
+  final List<String> enabledTabs;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -15,6 +16,7 @@ class UserSettings {
     this.preferredUnitSystem = 'metric',
     this.isCloudSyncEnabled = false,
     this.isGoogleDriveSyncEnabled = false,
+    this.enabledTabs = const ['dashboard', 'measure', 'photos', 'progress', 'sizes', 'profile'],
     DateTime? createdAt,
     DateTime? updatedAt,
   })  : createdAt = createdAt ?? DateTime.now(),
@@ -28,12 +30,14 @@ class UserSettings {
       'preferred_unit_system': preferredUnitSystem,
       'is_cloud_sync_enabled': isCloudSyncEnabled ? 1 : 0,
       'is_google_drive_sync_enabled': isGoogleDriveSyncEnabled ? 1 : 0,
+      'enabled_tabs': enabledTabs.join(','),
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
   }
 
   factory UserSettings.fromMap(Map<String, dynamic> map) {
+    final tabsString = map['enabled_tabs'] as String? ?? 'dashboard,measure,photos,progress,sizes,profile';
     return UserSettings(
       id: map['id'] as int?,
       userId: map['user_id'] as int,
@@ -41,6 +45,7 @@ class UserSettings {
       preferredUnitSystem: map['preferred_unit_system'] as String? ?? 'metric',
       isCloudSyncEnabled: (map['is_cloud_sync_enabled'] as int? ?? 0) == 1,
       isGoogleDriveSyncEnabled: (map['is_google_drive_sync_enabled'] as int? ?? 0) == 1,
+      enabledTabs: tabsString.split(',').where((t) => t.isNotEmpty).toList(),
       createdAt: DateTime.parse(map['created_at'] as String),
       updatedAt: DateTime.parse(map['updated_at'] as String),
     );
@@ -53,6 +58,7 @@ class UserSettings {
     String? preferredUnitSystem,
     bool? isCloudSyncEnabled,
     bool? isGoogleDriveSyncEnabled,
+    List<String>? enabledTabs,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -63,6 +69,7 @@ class UserSettings {
       preferredUnitSystem: preferredUnitSystem ?? this.preferredUnitSystem,
       isCloudSyncEnabled: isCloudSyncEnabled ?? this.isCloudSyncEnabled,
       isGoogleDriveSyncEnabled: isGoogleDriveSyncEnabled ?? this.isGoogleDriveSyncEnabled,
+      enabledTabs: enabledTabs ?? this.enabledTabs,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

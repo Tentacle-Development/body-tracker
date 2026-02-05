@@ -15,6 +15,7 @@ import '../settings/reminder_settings_screen.dart';
 import '../settings/goals_screen.dart';
 import '../settings/clothing_size_screen.dart';
 import '../settings/profile_management_screen.dart';
+import '../settings/navigation_settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -25,53 +26,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: const [
-          DashboardTab(),
-          MeasurementsTab(),
-          PhotoGalleryScreen(),
-          ProgressChartsTab(),
-          ClothingSizeScreen(),
-          ProfileTab(),
-        ],
-      ),
-      bottomNavigationBar: Container(
-        height: 70,
-        decoration: BoxDecoration(
-          color: AppTheme.surfaceColor,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.2),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: Row(
-              mainAxisSize: MainAxisSize.min, // Ensure row doesn't force items to stretch
-              children: [
-                _buildNavItem(0, Icons.dashboard_outlined, Icons.dashboard, 'Dashboard'),
-                _buildNavItem(1, Icons.straighten_outlined, Icons.straighten, 'Measure'),
-                _buildNavItem(2, Icons.photo_camera_outlined, Icons.photo_camera, 'Photos'),
-                _buildNavItem(3, Icons.show_chart_outlined, Icons.show_chart, 'Progress'),
-                _buildNavItem(4, Icons.checkroom_outlined, Icons.checkroom, 'Sizes'),
-                _buildNavItem(5, Icons.person_outline, Icons.person, 'Profile'),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 
   Widget _buildNavItem(int index, IconData icon, IconData activeIcon, String label) {
     final isSelected = _currentIndex == index;
@@ -99,6 +53,81 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.watch<AppProvider>();
+    final enabledTabs = provider.settings?.enabledTabs ?? 
+        ['dashboard', 'measure', 'photos', 'progress', 'sizes', 'profile'];
+
+    final List<Widget> tabScreens = [];
+    final List<Widget> navItems = [];
+
+    for (int i = 0; i < enabledTabs.length; i++) {
+      final tabId = enabledTabs[i];
+      switch (tabId) {
+        case 'dashboard':
+          tabScreens.add(const DashboardTab());
+          navItems.add(_buildNavItem(i, Icons.dashboard_outlined, Icons.dashboard, 'Dashboard'));
+          break;
+        case 'measure':
+          tabScreens.add(const MeasurementsTab());
+          navItems.add(_buildNavItem(i, Icons.straighten_outlined, Icons.straighten, 'Measure'));
+          break;
+        case 'photos':
+          tabScreens.add(const PhotoGalleryScreen());
+          navItems.add(_buildNavItem(i, Icons.photo_camera_outlined, Icons.photo_camera, 'Photos'));
+          break;
+        case 'progress':
+          tabScreens.add(const ProgressChartsTab());
+          navItems.add(_buildNavItem(i, Icons.show_chart_outlined, Icons.show_chart, 'Progress'));
+          break;
+        case 'sizes':
+          tabScreens.add(const ClothingSizeScreen());
+          navItems.add(_buildNavItem(i, Icons.checkroom_outlined, Icons.checkroom, 'Sizes'));
+          break;
+        case 'profile':
+          tabScreens.add(const ProfileTab());
+          navItems.add(_buildNavItem(i, Icons.person_outline, Icons.person, 'Profile'));
+          break;
+      }
+    }
+
+    // Handle case where _currentIndex might be out of bounds after reordering
+    if (_currentIndex >= tabScreens.length) {
+      _currentIndex = 0;
+    }
+
+    return Scaffold(
+      body: IndexedStack(
+        index: _currentIndex,
+        children: tabScreens,
+      ),
+      bottomNavigationBar: Container(
+        height: 70,
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceColor,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.2),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: navItems,
+            ),
+          ),
         ),
       ),
     );
@@ -660,6 +689,68 @@ class ProfileTab extends StatelessWidget {
               },
             ),
             const SizedBox(height: 12),
+
+            _buildSettingsItem(
+              context,
+              icon: Icons.navigation_outlined,
+              title: 'Navigation',
+              subtitle: 'Customize bottom bar tabs',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const NavigationSettingsScreen(),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+
+            // Show disabled tabs as menu items
+            Consumer<AppProvider>(
+              builder: (context, provider, child) {
+                final enabledTabs = provider.settings?.enabledTabs ?? [];
+                final List<Widget> disabledItems = [];
+                
+                if (!enabledTabs.contains('dashboard')) {
+                  disabledItems.add(_buildSettingsItem(context, icon: Icons.dashboard_outlined, title: 'Dashboard', subtitle: 'View your overview', onTap: () {
+                    // Navigate to Dashboard logic if needed or just switch tab
+                  }));
+                }
+                if (!enabledTabs.contains('measure')) {
+                  disabledItems.add(_buildSettingsItem(context, icon: Icons.straighten_outlined, title: 'Measure', subtitle: 'Add new data', onTap: () {
+                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GuidedMeasurementFlow()));
+                  }));
+                }
+                if (!enabledTabs.contains('photos')) {
+                  disabledItems.add(_buildSettingsItem(context, icon: Icons.photo_camera_outlined, title: 'Photos', subtitle: 'Progress gallery', onTap: () {
+                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PhotoGalleryScreen()));
+                  }));
+                }
+                if (!enabledTabs.contains('progress')) {
+                  disabledItems.add(_buildSettingsItem(context, icon: Icons.show_chart_outlined, title: 'Progress', subtitle: 'Statistics & Charts', onTap: () {
+                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProgressChartsTab()));
+                  }));
+                }
+                if (!enabledTabs.contains('sizes')) {
+                  disabledItems.add(_buildSettingsItem(context, icon: Icons.checkroom_outlined, title: 'Clothing Sizes', subtitle: 'Your size guide', onTap: () {
+                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ClothingSizeScreen()));
+                  }));
+                }
+
+                if (disabledItems.isEmpty) return const SizedBox.shrink();
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8.0),
+                      child: Text('Extra Features', style: TextStyle(color: AppTheme.textSecondary, fontSize: 14)),
+                    ),
+                    ...disabledItems.expand((item) => [item, const SizedBox(height: 12)]),
+                  ],
+                );
+              },
+            ),
             
             _buildSettingsItem(
               context,
