@@ -41,6 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       bottomNavigationBar: Container(
+        height: 70,
         decoration: BoxDecoration(
           color: AppTheme.surfaceColor,
           boxShadow: [
@@ -51,35 +52,48 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
-        child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: (index) => setState(() => _currentIndex = index),
-          type: BottomNavigationBarType.fixed,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.dashboard_outlined),
-              activeIcon: Icon(Icons.dashboard),
-              label: 'Dashboard',
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildNavItem(0, Icons.dashboard_outlined, Icons.dashboard, 'Dashboard'),
+                _buildNavItem(1, Icons.straighten_outlined, Icons.straighten, 'Measure'),
+                _buildNavItem(2, Icons.photo_camera_outlined, Icons.photo_camera, 'Photos'),
+                _buildNavItem(3, Icons.show_chart_outlined, Icons.show_chart, 'Progress'),
+                _buildNavItem(4, Icons.checkroom_outlined, Icons.checkroom, 'Sizes'),
+                _buildNavItem(5, Icons.person_outline, Icons.person, 'Profile'),
+              ],
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.straighten_outlined),
-              activeIcon: Icon(Icons.straighten),
-              label: 'Measure',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.photo_camera_outlined),
-              activeIcon: Icon(Icons.photo_camera),
-              label: 'Photos',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.checkroom_outlined),
-              activeIcon: Icon(Icons.checkroom),
-              label: 'Sizes',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              activeIcon: Icon(Icons.person),
-              label: 'Profile',
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(int index, IconData icon, IconData activeIcon, String label) {
+    final isSelected = _currentIndex == index;
+    final color = isSelected ? AppTheme.primaryColor : AppTheme.textSecondary;
+
+    return InkWell(
+      onTap: () => setState(() => _currentIndex = index),
+      child: Container(
+        width: 80,
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(isSelected ? activeIcon : icon, color: color),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
             ),
           ],
         ),
