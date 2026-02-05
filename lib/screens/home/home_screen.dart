@@ -58,75 +58,80 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<AppProvider>();
-    final enabledTabs = provider.settings?.enabledTabs ?? 
-        ['dashboard', 'measure', 'photos', 'progress', 'sizes', 'profile'];
+    return Consumer<AppProvider>(
+      builder: (context, provider, child) {
+        final enabledTabs = provider.settings?.enabledTabs ?? 
+            ['dashboard', 'measure', 'photos', 'progress', 'sizes', 'profile'];
 
-    final List<Widget> tabScreens = [];
-    final List<Widget> navItems = [];
+        final List<Widget> tabScreens = [];
+        final List<Widget> navItems = [];
 
-    for (int i = 0; i < enabledTabs.length; i++) {
-      final tabId = enabledTabs[i];
-      switch (tabId) {
-        case 'dashboard':
-          tabScreens.add(const DashboardTab());
-          navItems.add(_buildNavItem(i, Icons.dashboard_outlined, Icons.dashboard, 'Dashboard'));
-          break;
-        case 'measure':
-          tabScreens.add(const MeasurementsTab());
-          navItems.add(_buildNavItem(i, Icons.straighten_outlined, Icons.straighten, 'Measure'));
-          break;
-        case 'photos':
-          tabScreens.add(const PhotoGalleryScreen());
-          navItems.add(_buildNavItem(i, Icons.photo_camera_outlined, Icons.photo_camera, 'Photos'));
-          break;
-        case 'progress':
-          tabScreens.add(const ProgressChartsTab());
-          navItems.add(_buildNavItem(i, Icons.show_chart_outlined, Icons.show_chart, 'Progress'));
-          break;
-        case 'sizes':
-          tabScreens.add(const ClothingSizeScreen());
-          navItems.add(_buildNavItem(i, Icons.checkroom_outlined, Icons.checkroom, 'Sizes'));
-          break;
-        case 'profile':
-          tabScreens.add(const ProfileTab());
-          navItems.add(_buildNavItem(i, Icons.person_outline, Icons.person, 'Profile'));
-          break;
-      }
-    }
+        for (int i = 0; i < enabledTabs.length; i++) {
+          final tabId = enabledTabs[i].trim();
+          switch (tabId) {
+            case 'dashboard':
+              tabScreens.add(const DashboardTab());
+              navItems.add(_buildNavItem(i, Icons.dashboard_outlined, Icons.dashboard, 'Dashboard'));
+              break;
+            case 'measure':
+              tabScreens.add(const MeasurementsTab());
+              navItems.add(_buildNavItem(i, Icons.straighten_outlined, Icons.straighten, 'Measure'));
+              break;
+            case 'photos':
+              tabScreens.add(const PhotoGalleryScreen());
+              navItems.add(_buildNavItem(i, Icons.photo_camera_outlined, Icons.photo_camera, 'Photos'));
+              break;
+            case 'progress':
+              tabScreens.add(const ProgressChartsTab());
+              navItems.add(_buildNavItem(i, Icons.show_chart_outlined, Icons.show_chart, 'Progress'));
+              break;
+            case 'sizes':
+              tabScreens.add(const ClothingSizeScreen());
+              navItems.add(_buildNavItem(i, Icons.checkroom_outlined, Icons.checkroom, 'Sizes'));
+              break;
+            case 'profile':
+              tabScreens.add(const ProfileTab());
+              navItems.add(_buildNavItem(i, Icons.person_outline, Icons.person, 'Profile'));
+              break;
+          }
+        }
 
-    if (_currentIndex >= tabScreens.length) {
-      _currentIndex = 0;
-    }
+        if (_currentIndex >= tabScreens.length) {
+          _currentIndex = 0;
+        }
 
-    return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: tabScreens.isEmpty ? [const Center(child: CircularProgressIndicator())] : tabScreens,
-      ),
-      bottomNavigationBar: Container(
-        height: 70,
-        decoration: BoxDecoration(
-          color: AppTheme.surfaceColor,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.2),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
+        return Scaffold(
+          body: IndexedStack(
+            key: ValueKey('stack_${enabledTabs.join('_')}'),
+            index: _currentIndex,
+            children: tabScreens.isEmpty ? [const Center(child: CircularProgressIndicator())] : tabScreens,
+          ),
+          bottomNavigationBar: Container(
+            height: 70,
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceColor,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.2),
+                  blurRadius: 10,
+                  offset: const Offset(0, -2),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: navItems,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: Row(
+                  key: ValueKey('nav_${enabledTabs.join('_')}'),
+                  mainAxisSize: MainAxisSize.min,
+                  children: navItems,
+                ),
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

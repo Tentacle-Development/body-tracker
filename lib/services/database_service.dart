@@ -173,6 +173,15 @@ class DatabaseService {
       await db.execute(
           'ALTER TABLE settings ADD COLUMN is_google_drive_sync_enabled INTEGER DEFAULT 0');
     }
+
+    if (oldVersion < 7) {
+      // Ensure enabled_tabs exists and has correct default
+      try {
+        await db.execute('ALTER TABLE settings ADD COLUMN enabled_tabs TEXT DEFAULT "dashboard,measure,photos,progress,sizes,profile"');
+      } catch (e) {
+        // Column might already exist
+      }
+    }
   }
 
   Future<void> close() async {
