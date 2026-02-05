@@ -60,6 +60,7 @@ class DatabaseService {
         user_id INTEGER NOT NULL,
         reminder_interval_days INTEGER DEFAULT 30,
         preferred_unit_system TEXT DEFAULT 'metric',
+        is_cloud_sync_enabled INTEGER DEFAULT 0,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
         FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE

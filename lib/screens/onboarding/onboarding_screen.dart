@@ -7,7 +7,8 @@ import '../home/home_screen.dart';
 import '../settings/backup_restore_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
-  const OnboardingScreen({super.key});
+  final bool isAddingProfile;
+  const OnboardingScreen({super.key, this.isAddingProfile = false});
 
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -65,9 +66,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       await Provider.of<AppProvider>(context, listen: false).createUser(user);
       if (!mounted) return;
       
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
-      );
+      if (widget.isAddingProfile) {
+        Navigator.of(context).pop();
+      } else {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+        );
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

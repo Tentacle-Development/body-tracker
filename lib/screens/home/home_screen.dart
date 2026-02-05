@@ -24,8 +24,81 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
 
+  Widget _buildNavItem(int index, IconData icon, IconData activeIcon, String label) {
+    final isSelected = _currentIndex == index;
+    final color = isSelected ? AppTheme.primaryColor : AppTheme.textSecondary;
+
+    return GestureDetector( // Using GestureDetector instead of InkWell for more control
+      onTap: () => setState(() => _currentIndex = index),
+      child: Container(
+        width: 85, // Slightly wider to avoid truncation
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        color: Colors.transparent, // Make entire area tappable
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(isSelected ? activeIcon : icon, color: color, size: 24),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.visible, // Don't truncate labels
+              style: TextStyle(
+                color: color,
+                fontSize: 11, // Slightly smaller font to fit
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<AppProvider>();
+    final enabledTabs = provider.settings?.enabledTabs ?? 
+        ['dashboard', 'measure', 'photos', 'progress', 'sizes', 'profile'];
+
+    final List<Widget> tabScreens = [];
+    final List<Widget> navItems = [];
+
+    for (int i = 0; i < enabledTabs.length; i++) {
+      final tabId = enabledTabs[i];
+      switch (tabId) {
+        case 'dashboard':
+          tabScreens.add(const DashboardTab());
+          navItems.add(_buildNavItem(i, Icons.dashboard_outlined, Icons.dashboard, 'Dashboard'));
+          break;
+        case 'measure':
+          tabScreens.add(const MeasurementsTab());
+          navItems.add(_buildNavItem(i, Icons.straighten_outlined, Icons.straighten, 'Measure'));
+          break;
+        case 'photos':
+          tabScreens.add(const PhotoGalleryScreen());
+          navItems.add(_buildNavItem(i, Icons.photo_camera_outlined, Icons.photo_camera, 'Photos'));
+          break;
+        case 'progress':
+          tabScreens.add(const ProgressChartsTab());
+          navItems.add(_buildNavItem(i, Icons.show_chart_outlined, Icons.show_chart, 'Progress'));
+          break;
+        case 'sizes':
+          tabScreens.add(const ClothingSizeScreen());
+          navItems.add(_buildNavItem(i, Icons.checkroom_outlined, Icons.checkroom, 'Sizes'));
+          break;
+        case 'profile':
+          tabScreens.add(const ProfileTab());
+          navItems.add(_buildNavItem(i, Icons.person_outline, Icons.person, 'Profile'));
+          break;
+      }
+    }
+
+    // Handle case where _currentIndex might be out of bounds after reordering
+    if (_currentIndex >= tabScreens.length) {
+      _currentIndex = 0;
+    }
+
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
@@ -38,6 +111,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       bottomNavigationBar: Container(
+        height: 70,
         decoration: BoxDecoration(
           color: AppTheme.surfaceColor,
           boxShadow: [

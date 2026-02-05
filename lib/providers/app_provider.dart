@@ -234,10 +234,60 @@ class AppProvider extends ChangeNotifier {
       _users.add(newUser);
       _currentUser = newUser;
       _isFirstLaunch = false;
+      
+      // Load data for the new user
+      await loadMeasurements();
+      await loadPhotos();
+      await loadDashboardCategories();
+      await loadSettings();
+      await loadGoals();
+      
       notifyListeners();
     } catch (e) {
       debugPrint('Error creating user: $e');
       rethrow;
+    }
+  }
+
+  Future<void> clearAllData() async {
+    try {
+      final db = await DatabaseService.instance.database;
+      await db.delete('users');
+      await db.delete('measurements');
+      await db.delete('settings');
+      await db.delete('progress_photos');
+      await db.delete('goals');
+      
+      _currentUser = null;
+      _users = [];
+      _measurements = [];
+      _photos = [];
+      _goals = [];
+      _isFirstLaunch = true;
+      
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error clearing all data: $e');
+    }
+  }
+
+  Future<void> deleteUser(int userId) async {
+    try {
+      final db = await DatabaseService.instance.database;
+      await db.delete('users', where: 'id = ?', whereArgs: [userId]);
+      _users.removeWhere((u) => u.id == userId);
+      
+      if (_currentUser?.id == userId) {
+        if (_users.isNotEmpty) {
+          setCurrentUser(_users.first);
+        } else {
+          _currentUser = null;
+          _isFirstLaunch = true;
+        }
+      }
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error deleting user: $e');
     }
   }
 
@@ -251,6 +301,43 @@ class AppProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint('Error adding measurement: $e');
       rethrow;
+    }
+  }
+
+  Future<void> syncPhotoWeight(double weight, DateTime takenAt) async {
+    if (_currentUser == null || _currentUser!.id == null) return;
+    
+    final unit = getLatestMeasurement('weight')?.unit ?? 'kg';
+    
+    final measurement = Measurement(
+      userId: _currentUser!.id!,
+      type: 'weight',
+      value: weight,
+      unit: unit,
+      measuredAt: takenAt,
+    );
+    
+    await addMeasurement(measurement);
+  }
+
+  Future<void> addPhoto(ProgressPhoto photo) async {
+    try {
+      final newPhoto = await PhotoService.instance.addPhoto(photo);
+      _photos.insert(0, newPhoto);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error adding photo: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> deletePhoto(ProgressPhoto photo) async {
+    try {
+      await PhotoService.instance.deletePhotoRecord(photo);
+      _photos.removeWhere((p) => p.id == photo.id);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error deleting photo: $e');
     }
   }
 
