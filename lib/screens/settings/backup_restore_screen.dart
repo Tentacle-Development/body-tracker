@@ -1,9 +1,11 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:archive/archive.dart';
+import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import '../../providers/app_provider.dart';
@@ -247,6 +249,121 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
     }
   }
 
+  Future<void> _restoreFromGoogleDrive() async {
+    setState(() {
+      _isSyncing = true;
+      _statusMessage = 'Fetching backups from Google Drive...';
+    });
+
+    try {
+      final backups = await GoogleDriveService.instance.listBackups();
+      
+      if (!mounted) return;
+      setState(() => _isSyncing = false);
+
+      if (backups.isEmpty) {
+        _showError('No backups found on Google Drive');
+        return;
+      }
+
+      final selectedFile = await showDialog<drive.File>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Select Cloud Backup'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: backups.length,
+              itemBuilder: (context, index) {
+                final file = backups[index];
+                final date = file.createdTime != null 
+                    ? DateFormat('yyyy-MM-dd HH:mm').format(file.createdTime!)
+                    : 'Unknown date';
+                return ListTile(
+                  title: Text(file.name ?? 'Untitled'),
+                  subtitle: Text(date),
+                  onTap: () => Navigator.pop(context, file),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+          ],
+        ),
+      );
+
+      if (selectedFile == null) return;
+
+      // Confirmation
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Restore Cloud Backup'),
+          content: Text('Download and restore ${selectedFile.name}?\n\nExisting data will be replaced.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: TextButton.styleFrom(foregroundColor: Colors.orange),
+              child: const Text('Restore'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirmed != true) return;
+
+      setState(() {
+        _isSyncing = true;
+        _statusMessage = 'Downloading backup...';
+      });
+
+      final zipPath = await GoogleDriveService.instance.downloadBackup(selectedFile.id!, selectedFile.name!);
+      if (zipPath == null) {
+        _showError('Download failed');
+        return;
+      }
+
+      setState(() => _statusMessage = 'Extracting and restoring...');
+      
+      final extractPath = await _extractZip(zipPath);
+      
+      final appProvider = context.read<AppProvider>();
+      int? userId = appProvider.currentUser?.id;
+      
+      if (userId == null) {
+        await appProvider.clearAllData();
+      }
+      
+      await BackupService.instance.restoreBackup(extractPath, userId);
+      await appProvider.initialize();
+
+      setState(() {
+        _isSyncing = false;
+        _statusMessage = 'Restored from cloud successfully!';
+      });
+
+      // Cleanup
+      await Directory(extractPath).delete(recursive: true);
+      await File(zipPath).delete();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Cloud backup restored!'), backgroundColor: Colors.green),
+        );
+      }
+    } catch (e) {
+      _showError('Cloud restore failed: $e');
+    } finally {
+      if (mounted) setState(() => _isSyncing = false);
+    }
+  }
+
   Future<String> _extractZip(String zipPath) async {
     final bytes = await File(zipPath).readAsBytes();
     final archive = ZipDecoder().decodeBytes(bytes);
@@ -393,6 +510,19 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
                       label: const Text('Sync Now'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue.withValues(alpha: 0.2),
+                        foregroundColor: Colors.blue,
+                        elevation: 0,
+                        minimumSize: const Size(double.infinity, 44),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    ElevatedButton.icon(
+                      onPressed: isLoading ? null : _restoreFromGoogleDrive,
+                      icon: const Icon(Icons.cloud_download_rounded),
+                      label: const Text('Restore from Cloud'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue.withValues(alpha: 0.1),
                         foregroundColor: Colors.blue,
                         elevation: 0,
                         minimumSize: const Size(double.infinity, 44),
