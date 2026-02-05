@@ -97,18 +97,14 @@ class BackupService {
     final db = await DatabaseService.instance.database;
     final settings = await db.query('settings', where: 'user_id = ?', whereArgs: [userId]);
     
+    if (settings.isEmpty) return;
+    
+    final header = settings.first.keys.toList();
     final csvLines = <String>[];
-    csvLines.add('id,user_id,reminder_interval_days,preferred_unit_system,created_at,updated_at');
+    csvLines.add(header.join(','));
     
     for (final s in settings) {
-      csvLines.add([
-        s['id'],
-        s['user_id'],
-        s['reminder_interval_days'],
-        _escapeCsv(s['preferred_unit_system'] as String? ?? 'metric'),
-        s['created_at'],
-        s['updated_at'],
-      ].join(','));
+      csvLines.add(header.map((key) => _escapeCsv(s[key]?.toString() ?? '')).join(','));
     }
     
     final file = File(path.join(backupPath, 'settings.csv'));
@@ -177,18 +173,50 @@ class BackupService {
   }
 
   /// Import/restore from a backup directory
-  Future<void> restoreBackup(String backupPath, int userId) async {
-    // Import user profile (update existing)
-    await _importUserProfile(backupPath, userId);
+  Future<void> restoreBackup(String backupPath, int? userId) async {
+    int targetUserId;
+    
+    if (userId == null) {
+      // Onboarding restore: we need to recreate the user first
+      targetUserId = await _restoreUserFromBackup(backupPath);
+    } else {
+      targetUserId = userId;
+      // Update existing user profile
+      await _importUserProfile(backupPath, targetUserId);
+    }
     
     // Import measurements
-    await _importMeasurements(backupPath, userId);
+    await _importMeasurements(backupPath, targetUserId);
     
     // Import settings
-    await _importSettings(backupPath, userId);
+    await _importSettings(backupPath, targetUserId);
     
     // Import photos
-    await _importPhotos(backupPath, userId);
+    await _importPhotos(backupPath, targetUserId);
+  }
+
+  Future<int> _restoreUserFromBackup(String backupPath) async {
+    final file = File(path.join(backupPath, 'user_profile.csv'));
+    if (!await file.exists()) throw Exception('Backup profile not found');
+    
+    final lines = await file.readAsLines();
+    if (lines.length < 2) throw Exception('Backup profile empty');
+    
+    final values = _parseCsvLine(lines[1]);
+    if (values.length < 6) throw Exception('Invalid backup profile');
+    
+    final db = await DatabaseService.instance.database;
+    
+    // Create the user
+    final id = await db.insert('users', {
+      'name': values[1],
+      'gender': values[2],
+      'date_of_birth': values[3],
+      'created_at': values[4],
+      'updated_at': values[5],
+    });
+    
+    return id;
   }
 
   Future<void> _importUserProfile(String backupPath, int userId) async {
@@ -249,33 +277,45 @@ class BackupService {
     final lines = await file.readAsLines();
     if (lines.length < 2) return;
     
+    final header = _parseCsvLine(lines[0]);
     final values = _parseCsvLine(lines[1]);
-    if (values.length < 6) return;
     
     final db = await DatabaseService.instance.database;
     
-    // Update or insert settings
+    // Map headers to values
+    final Map<String, dynamic> settingsData = {};
+    for (int i = 0; i < header.length; i++) {
+      if (i < values.length) {
+        settingsData[header[i]] = values[i];
+      }
+    }
+
+    // Prepare map for DB
+    final Map<String, dynamic> dbMap = {
+      'user_id': userId,
+      'updated_at': DateTime.now().toIso8601String(),
+    };
+
+    if (settingsData.containsKey('reminder_interval_days')) {
+      dbMap['reminder_interval_days'] = int.tryParse(settingsData['reminder_interval_days'].toString()) ?? 30;
+    }
+    if (settingsData.containsKey('preferred_unit_system')) {
+      dbMap['preferred_unit_system'] = settingsData['preferred_unit_system'];
+    }
+    if (settingsData.containsKey('enabled_tabs')) {
+      dbMap['enabled_tabs'] = settingsData['enabled_tabs'];
+    }
+    if (settingsData.containsKey('is_google_drive_sync_enabled')) {
+      dbMap['is_google_drive_sync_enabled'] = (settingsData['is_google_drive_sync_enabled'].toString() == '1') ? 1 : 0;
+    }
+
     final existing = await db.query('settings', where: 'user_id = ?', whereArgs: [userId]);
     
     if (existing.isEmpty) {
-      await db.insert('settings', {
-        'user_id': userId,
-        'reminder_interval_days': int.tryParse(values[2]) ?? 30,
-        'preferred_unit_system': values[3],
-        'created_at': DateTime.now().toIso8601String(),
-        'updated_at': DateTime.now().toIso8601String(),
-      });
+      dbMap['created_at'] = settingsData['created_at'] ?? DateTime.now().toIso8601String();
+      await db.insert('settings', dbMap);
     } else {
-      await db.update(
-        'settings',
-        {
-          'reminder_interval_days': int.tryParse(values[2]) ?? 30,
-          'preferred_unit_system': values[3],
-          'updated_at': DateTime.now().toIso8601String(),
-        },
-        where: 'user_id = ?',
-        whereArgs: [userId],
-      );
+      await db.update('settings', dbMap, where: 'user_id = ?', whereArgs: [userId]);
     }
   }
 

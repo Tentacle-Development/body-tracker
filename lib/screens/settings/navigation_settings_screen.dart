@@ -58,6 +58,10 @@ class _NavigationSettingsScreenState extends State<NavigationSettingsScreen> {
     final provider = context.read<AppProvider>();
     final newSettings = provider.settings!.copyWith(enabledTabs: _enabledTabs);
     provider.updateSettings(newSettings);
+    
+    // Explicitly notify provider to refresh
+    provider.loadSettings();
+
     Navigator.pop(context);
   }
 

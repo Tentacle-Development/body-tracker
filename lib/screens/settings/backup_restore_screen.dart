@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../providers/app_provider.dart';
 import '../../services/backup_service.dart';
 import '../../utils/app_theme.dart';
+import '../home/home_screen.dart';
 
 class BackupRestoreScreen extends StatefulWidget {
   const BackupRestoreScreen({super.key});
@@ -93,11 +94,9 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
 
   Future<void> _importBackup() async {
     final appProvider = context.read<AppProvider>();
-    final userId = appProvider.currentUser?.id;
-    if (userId == null) {
-      _showError('No user profile found');
-      return;
-    }
+    
+    // Check if we have a user, if not we need to handle it during onboarding
+    int? userId = appProvider.currentUser?.id;
 
     // Confirm before import
     final confirmed = await showDialog<bool>(
@@ -146,7 +145,8 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
 
       setState(() => _statusMessage = 'Restoring data...');
 
-      // Restore from backup
+      // If we don't have a user (onboarding), we perform a "clean restore"
+      // which will include the users table from the backup.
       await BackupService.instance.restoreBackup(extractPath, userId);
 
       // Reload app data
@@ -167,6 +167,16 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
             backgroundColor: Colors.green,
           ),
         );
+        
+        // If we were in onboarding, go to home
+        if (userId == null) {
+          if (mounted) {
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => HomeScreen()),
+              (route) => false,
+            );
+          }
+        }
       }
     } catch (e) {
       setState(() {
