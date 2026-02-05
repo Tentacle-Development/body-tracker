@@ -13,6 +13,7 @@ import '../settings/dashboard_customize_screen.dart';
 import '../settings/reminder_settings_screen.dart';
 import '../settings/goals_screen.dart';
 import '../settings/clothing_size_screen.dart';
+import '../settings/navigation_settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -28,12 +29,12 @@ class _HomeScreenState extends State<HomeScreen> {
     final isSelected = _currentIndex == index;
     final color = isSelected ? AppTheme.primaryColor : AppTheme.textSecondary;
 
-    return GestureDetector( // Using GestureDetector instead of InkWell for more control
+    return GestureDetector(
       onTap: () => setState(() => _currentIndex = index),
       child: Container(
-        width: 85, // Slightly wider to avoid truncation
+        width: 85,
         padding: const EdgeInsets.symmetric(vertical: 8),
-        color: Colors.transparent, // Make entire area tappable
+        color: Colors.transparent,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -42,10 +43,10 @@ class _HomeScreenState extends State<HomeScreen> {
             Text(
               label,
               maxLines: 1,
-              overflow: TextOverflow.visible, // Don't truncate labels
+              overflow: TextOverflow.visible,
               style: TextStyle(
                 color: color,
-                fontSize: 11, // Slightly smaller font to fit
+                fontSize: 11,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
             ),
@@ -94,7 +95,6 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     }
 
-    // Handle case where _currentIndex might be out of bounds after reordering
     if (_currentIndex >= tabScreens.length) {
       _currentIndex = 0;
     }
@@ -102,13 +102,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
-        children: const [
-          DashboardTab(),
-          MeasurementsTab(),
-          PhotoGalleryScreen(),
-          ProgressChartsTab(),
-          ProfileTab(),
-        ],
+        children: tabScreens,
       ),
       bottomNavigationBar: Container(
         height: 70,
@@ -122,37 +116,15 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
-        child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: (index) => setState(() => _currentIndex = index),
-          type: BottomNavigationBarType.fixed,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.dashboard_outlined),
-              activeIcon: Icon(Icons.dashboard),
-              label: 'Dashboard',
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: navItems,
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.straighten_outlined),
-              activeIcon: Icon(Icons.straighten),
-              label: 'Measure',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.photo_camera_outlined),
-              activeIcon: Icon(Icons.photo_camera),
-              label: 'Photos',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.show_chart_outlined),
-              activeIcon: Icon(Icons.show_chart),
-              label: 'Progress',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              activeIcon: Icon(Icons.person),
-              label: 'Profile',
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -394,23 +366,11 @@ class MeasurementsTab extends StatelessWidget {
                 color: AppTheme.textPrimary,
               ),
             ),
-            const SizedBox(height: 8),
-            const Text(
-              'Track your body measurements',
-              style: TextStyle(
-                color: AppTheme.textSecondary,
-                fontSize: 14,
-              ),
-            ),
             const SizedBox(height: 24),
-
-            // Quick add button
             GestureDetector(
               onTap: () {
                 Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const GuidedMeasurementFlow(),
-                  ),
+                  MaterialPageRoute(builder: (_) => const GuidedMeasurementFlow()),
                 );
               },
               child: Container(
@@ -418,155 +378,37 @@ class MeasurementsTab extends StatelessWidget {
                 decoration: BoxDecoration(
                   gradient: AppTheme.primaryGradient,
                   borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppTheme.primaryColor.withValues(alpha: 0.3),
-                      blurRadius: 15,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
                 ),
-                child: Row(
+                child: const Row(
                   children: [
-                    Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: const Icon(
-                        Icons.add,
-                        color: Colors.white,
-                        size: 28,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Full Body Measurement',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          SizedBox(height: 4),
-                          Text(
-                            'Guided step-by-step measurement',
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Icon(
-                      Icons.arrow_forward_ios,
-                      color: Colors.white70,
-                      size: 20,
-                    ),
+                    Icon(Icons.add, color: Colors.white, size: 28),
+                    SizedBox(width: 16),
+                    Text('New Measurement', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 24),
-
-            // Quick measurements
-            const Text(
-              'Quick Add',
-              style: TextStyle(
-                color: AppTheme.textPrimary,
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 12),
-
             Expanded(
               child: Consumer<AppProvider>(
                 builder: (context, provider, child) {
                   return GridView.builder(
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      childAspectRatio: 1,
-                    ),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 12, mainAxisSpacing: 12),
                     itemCount: MeasurementGuide.guides.length,
                     itemBuilder: (context, index) {
                       final guide = MeasurementGuide.guides[index];
                       final latest = provider.getLatestMeasurement(guide.type);
-                      final history = provider.getMeasurementsByType(guide.type);
-
                       return GestureDetector(
-                        onTap: () {
-                          if (latest == null) {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => MeasurementInputScreen(guide: guide),
-                              ),
-                            );
-                          } else {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => MeasurementDetailScreen(
-                                  guide: guide,
-                                  history: history,
-                                ),
-                              ),
-                            );
-                          }
-                        },
-                        onLongPress: latest != null ? () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => MeasurementInputScreen(guide: guide),
-                            ),
-                          );
-                        } : null,
+                        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => MeasurementDetailScreen(guide: guide, history: provider.getMeasurementsByType(guide.type)))),
                         child: Container(
-                          decoration: BoxDecoration(
-                            color: AppTheme.cardColor,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
+                          decoration: BoxDecoration(color: AppTheme.cardColor, borderRadius: BorderRadius.circular(16)),
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Container(
-                                width: 44,
-                                height: 44,
-                                decoration: BoxDecoration(
-                                  color: guide.color.withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Icon(
-                                  guide.icon,
-                                  color: guide.color,
-                                  size: 24,
-                                ),
-                              ),
+                              Icon(guide.icon, color: guide.color, size: 24),
                               const SizedBox(height: 8),
-                              Text(
-                                guide.title,
-                                style: const TextStyle(
-                                  color: AppTheme.textPrimary,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              if (latest != null)
-                                Text(
-                                  '${latest.value.toStringAsFixed(0)} ${guide.unit}',
-                                  style: TextStyle(
-                                    color: guide.color,
-                                    fontSize: 10,
-                                  ),
-                                ),
+                              Text(guide.title, style: const TextStyle(fontSize: 12)),
+                              if (latest != null) Text('${latest.value}${guide.unit}', style: TextStyle(color: guide.color, fontSize: 10)),
                             ],
                           ),
                         ),
@@ -583,23 +425,6 @@ class MeasurementsTab extends StatelessWidget {
   }
 }
 
-class SizesTab extends StatelessWidget {
-  const SizesTab({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const SafeArea(
-      child: Center(
-        child: Text(
-          'Clothing Sizes Tab\n(Coming Soon)',
-          textAlign: TextAlign.center,
-          style: TextStyle(color: AppTheme.textSecondary),
-        ),
-      ),
-    );
-  }
-}
-
 class ProfileTab extends StatelessWidget {
   const ProfileTab({super.key});
 
@@ -608,200 +433,118 @@ class ProfileTab extends StatelessWidget {
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Profile',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.textPrimary,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Profile', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+              const SizedBox(height: 24),
+              
+              Consumer<AppProvider>(
+                builder: (context, provider, child) {
+                  final user = provider.currentUser;
+                  if (user == null) return const SizedBox.shrink();
+                  return Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(color: AppTheme.cardColor, borderRadius: BorderRadius.circular(20)),
+                    child: Row(
+                      children: [
+                        const CircleAvatar(backgroundColor: AppTheme.primaryColor, child: Icon(Icons.person, color: Colors.white)),
+                        const SizedBox(width: 16),
+                        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text(user.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                          Text('${user.age} years old', style: const TextStyle(color: AppTheme.textSecondary)),
+                        ]),
+                      ],
+                    ),
+                  );
+                },
               ),
-            ),
-            const SizedBox(height: 24),
-            
-            Consumer<AppProvider>(
-              builder: (context, provider, child) {
-                final user = provider.currentUser;
-                if (user == null) {
-                  return const Center(child: Text('No profile found'));
-                }
-                
-                return Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: AppTheme.cardColor,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
+              const SizedBox(height: 24),
+              
+              const Text('Settings', style: TextStyle(color: AppTheme.textSecondary, fontSize: 14, fontWeight: FontWeight.w500)),
+              const SizedBox(height: 12),
+              
+              _buildSettingsItem(context, icon: Icons.navigation_outlined, title: 'Navigation', subtitle: 'Customize bottom bar', onTap: () {
+                Navigator.of(context).push(MaterialPageRoute(builder: (_) => const NavigationSettingsScreen()));
+              }),
+              const SizedBox(height: 12),
+              _buildSettingsItem(context, icon: Icons.notifications_active_outlined, title: 'Reminders', subtitle: 'Setup notifications', onTap: () {
+                Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ReminderSettingsScreen()));
+              }),
+              const SizedBox(height: 12),
+              _buildSettingsItem(context, icon: Icons.flag_outlined, title: 'Goals', subtitle: 'Track targets', onTap: () {
+                Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GoalsScreen()));
+              }),
+              const SizedBox(height: 12),
+              _buildSettingsItem(context, icon: Icons.backup_rounded, title: 'Backup & Restore', subtitle: 'Data management', onTap: () {
+                Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BackupRestoreScreen()));
+              }),
+
+              // Extra Features
+              Consumer<AppProvider>(
+                builder: (context, provider, child) {
+                  final enabledTabs = provider.settings?.enabledTabs ?? [];
+                  final List<Widget> extraItems = [];
+                  
+                  if (!enabledTabs.contains('dashboard')) {
+                    extraItems.add(_buildSettingsItem(context, icon: Icons.dashboard_outlined, title: 'Dashboard', subtitle: 'Overview', onTap: () {}));
+                  }
+                  if (!enabledTabs.contains('measure')) {
+                    extraItems.add(_buildSettingsItem(context, icon: Icons.straighten_outlined, title: 'Measure', subtitle: 'New entries', onTap: () {
+                      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GuidedMeasurementFlow()));
+                    }));
+                  }
+                  if (!enabledTabs.contains('photos')) {
+                    extraItems.add(_buildSettingsItem(context, icon: Icons.photo_camera_outlined, title: 'Photos', subtitle: 'Gallery', onTap: () {
+                      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PhotoGalleryScreen()));
+                    }));
+                  }
+                  if (!enabledTabs.contains('progress')) {
+                    extraItems.add(_buildSettingsItem(context, icon: Icons.show_chart_outlined, title: 'Progress', subtitle: 'Charts', onTap: () {
+                      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProgressChartsTab()));
+                    }));
+                  }
+                  if (!enabledTabs.contains('sizes')) {
+                    extraItems.add(_buildSettingsItem(context, icon: Icons.checkroom_outlined, title: 'Sizes', subtitle: 'Clothing guide', onTap: () {
+                      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ClothingSizeScreen()));
+                    }));
+                  }
+
+                  if (extraItems.isEmpty) return const SizedBox.shrink();
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        width: 60,
-                        height: 60,
-                        decoration: BoxDecoration(
-                          color: AppTheme.primaryColor.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        child: const Icon(
-                          Icons.person,
-                          color: AppTheme.primaryColor,
-                          size: 30,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              user.name,
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.textPrimary,
-                              ),
-                            ),
-                            Text(
-                              '${user.age} years old • ${user.gender}',
-                              style: const TextStyle(
-                                color: AppTheme.textSecondary,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      const SizedBox(height: 24),
+                      const Text('Extra Features', style: TextStyle(color: AppTheme.textSecondary, fontSize: 14)),
+                      const SizedBox(height: 12),
+                      ...extraItems.expand((item) => [item, const SizedBox(height: 12)]),
                     ],
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 24),
-            
-            const Text(
-              'Settings',
-              style: TextStyle(
-                color: AppTheme.textSecondary,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
+                  );
+                },
               ),
-            ),
-            const SizedBox(height: 12),
-            
-            _buildSettingsItem(
-              context,
-              icon: Icons.notifications_active_outlined,
-              title: 'Reminders',
-              subtitle: 'Setup measurement notifications',
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const ReminderSettingsScreen(),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 12),
-            
-            _buildSettingsItem(
-              context,
-              icon: Icons.flag_outlined,
-              title: 'My Goals',
-              subtitle: 'Track your body targets',
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const GoalsScreen(),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 12),
-            
-            _buildSettingsItem(
-              context,
-              icon: Icons.checkroom_outlined,
-              title: 'Clothing Sizes',
-              subtitle: 'Your size based on measurements',
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const ClothingSizeScreen(),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 12),
-            
-            _buildSettingsItem(
-              context,
-              icon: Icons.backup_rounded,
-              title: 'Backup & Restore',
-              subtitle: 'Export or import your data',
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const BackupRestoreScreen(),
-                  ),
-                );
-              },
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
-  
-  Widget _buildSettingsItem(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
+
+  Widget _buildSettingsItem(BuildContext context, {required IconData icon, required String title, required String subtitle, required VoidCallback onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppTheme.cardColor,
-          borderRadius: BorderRadius.circular(12),
-        ),
+        decoration: BoxDecoration(color: AppTheme.cardColor, borderRadius: BorderRadius.circular(12)),
         child: Row(
           children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: AppTheme.primaryColor.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, color: AppTheme.primaryColor, size: 20),
-            ),
+            Icon(icon, color: AppTheme.primaryColor, size: 20),
             const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 16,
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      color: Colors.grey[500],
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(Icons.arrow_forward_ios, color: Colors.grey[600], size: 16),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(title, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16)),
+              Text(subtitle, style: TextStyle(color: Colors.grey[500], fontSize: 12)),
+            ])),
+            const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16),
           ],
         ),
       ),

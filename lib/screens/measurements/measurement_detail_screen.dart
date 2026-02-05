@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import '../../models/measurement.dart';
 import '../../models/measurement_guide.dart';
+import '../../providers/app_provider.dart';
 import '../../utils/app_theme.dart';
 
 class MeasurementDetailScreen extends StatelessWidget {
@@ -200,7 +202,6 @@ class MeasurementDetailScreen extends StatelessWidget {
                 getTitlesWidget: (value, meta) {
                   if (value.toInt() >= 0 && value.toInt() < chartData.length) {
                     final date = chartData[value.toInt()].measuredAt;
-                    // Only show first, middle, and last date
                     if (value.toInt() == 0 || 
                         value.toInt() == chartData.length - 1 || 
                         value.toInt() == chartData.length ~/ 2) {
@@ -240,42 +241,98 @@ class MeasurementDetailScreen extends StatelessWidget {
   }
 
   Widget _buildHistoryTable(BuildContext context) {
-    if (history.isEmpty) {
-      return const Center(child: Text('No history entries yet'));
-    }
+    return Consumer<AppProvider>(
+      builder: (context, provider, child) {
+        final historyItems = provider.getMeasurementsByType(guide.type);
+        
+        if (historyItems.isEmpty) {
+          return const Center(child: Text('No history entries yet'));
+        }
 
-    return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.cardColor,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: ListView.separated(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: history.length,
-        separatorBuilder: (context, index) => Divider(
-          color: Colors.white.withValues(alpha: 0.05),
-          height: 1,
+        return Container(
+          decoration: BoxDecoration(
+            color: AppTheme.cardColor,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: historyItems.length,
+            separatorBuilder: (context, index) => Divider(
+              color: Colors.white.withValues(alpha: 0.05),
+              height: 1,
+            ),
+            itemBuilder: (context, index) {
+              final item = historyItems[index];
+              return Dismissible(
+                key: ValueKey(item.id),
+                direction: DismissDirection.endToStart,
+                background: Container(
+                  alignment: Alignment.centerRight,
+                  padding: const EdgeInsets.only(right: 20),
+                  color: Colors.redAccent,
+                  child: const Icon(Icons.delete, color: Colors.white),
+                ),
+                onDismissed: (direction) {
+                  provider.deleteMeasurement(item.id!);
+                },
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  title: Text(
+                    '${item.value} ${guide.unit}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  subtitle: Text(
+                    DateFormat('EEEE, MMMM d, y').format(item.measuredAt),
+                    style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                  ),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.edit_note, size: 20, color: AppTheme.primaryColor),
+                    onPressed: () => _editEntry(context, provider, item),
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _editEntry(BuildContext context, AppProvider provider, Measurement item) async {
+    final controller = TextEditingController(text: item.value.toString());
+    
+    final newValue = await showDialog<double>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Measurement'),
+        content: TextField(
+          controller: controller,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          autofocus: true,
+          decoration: InputDecoration(
+            suffixText: guide.unit,
+          ),
         ),
-        itemBuilder: (context, index) {
-          final item = history[index];
-          return ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            title: Text(
-              '${item.value} ${guide.unit}',
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-            ),
-            subtitle: Text(
-              DateFormat('EEEE, MMMM d, y').format(item.measuredAt),
-              style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
-            ),
-            trailing: const Icon(Icons.chevron_right, size: 20, color: AppTheme.textSecondary),
-          );
-        },
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, double.tryParse(controller.text)),
+            child: const Text('Save'),
+          ),
+        ],
       ),
     );
+
+    if (newValue != null) {
+      final updated = item.copyWith(value: newValue);
+      await provider.updateMeasurement(updated);
+    }
   }
 }

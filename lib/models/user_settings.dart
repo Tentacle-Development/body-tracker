@@ -3,6 +3,7 @@ class UserSettings {
   final int userId;
   final int reminderIntervalDays;
   final String preferredUnitSystem;
+  final List<String> enabledTabs;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -11,6 +12,7 @@ class UserSettings {
     required this.userId,
     this.reminderIntervalDays = 30,
     this.preferredUnitSystem = 'metric',
+    this.enabledTabs = const ['dashboard', 'measure', 'photos', 'progress', 'sizes', 'profile'],
     DateTime? createdAt,
     DateTime? updatedAt,
   })  : createdAt = createdAt ?? DateTime.now(),
@@ -22,6 +24,7 @@ class UserSettings {
       'user_id': userId,
       'reminder_interval_days': reminderIntervalDays,
       'preferred_unit_system': preferredUnitSystem,
+      'enabled_tabs': enabledTabs.join(','),
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
@@ -33,6 +36,7 @@ class UserSettings {
       userId: map['user_id'] as int,
       reminderIntervalDays: map['reminder_interval_days'] as int? ?? 30,
       preferredUnitSystem: map['preferred_unit_system'] as String? ?? 'metric',
+      enabledTabs: (map['enabled_tabs'] as String? ?? 'dashboard,measure,photos,progress,sizes,profile').split(','),
       createdAt: DateTime.parse(map['created_at'] as String),
       updatedAt: DateTime.parse(map['updated_at'] as String),
     );
@@ -43,6 +47,7 @@ class UserSettings {
     int? userId,
     int? reminderIntervalDays,
     String? preferredUnitSystem,
+    List<String>? enabledTabs,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -51,6 +56,7 @@ class UserSettings {
       userId: userId ?? this.userId,
       reminderIntervalDays: reminderIntervalDays ?? this.reminderIntervalDays,
       preferredUnitSystem: preferredUnitSystem ?? this.preferredUnitSystem,
+      enabledTabs: enabledTabs ?? this.enabledTabs,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

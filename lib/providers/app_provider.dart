@@ -320,6 +320,40 @@ class AppProvider extends ChangeNotifier {
     await addMeasurement(measurement);
   }
 
+  Future<void> updateMeasurement(Measurement measurement) async {
+    try {
+      final db = await DatabaseService.instance.database;
+      await db.update(
+        'measurements',
+        measurement.toMap(),
+        where: 'id = ?',
+        whereArgs: [measurement.id],
+      );
+      final index = _measurements.indexWhere((m) => m.id == measurement.id);
+      if (index != -1) {
+        _measurements[index] = measurement;
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error updating measurement: $e');
+    }
+  }
+
+  Future<void> deleteMeasurement(int id) async {
+    try {
+      final db = await DatabaseService.instance.database;
+      await db.delete(
+        'measurements',
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+      _measurements.removeWhere((m) => m.id == id);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error deleting measurement: $e');
+    }
+  }
+
   Future<void> addPhoto(ProgressPhoto photo) async {
     try {
       final newPhoto = await PhotoService.instance.addPhoto(photo);

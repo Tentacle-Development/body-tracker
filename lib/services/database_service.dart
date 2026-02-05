@@ -60,6 +60,7 @@ class DatabaseService {
         user_id INTEGER NOT NULL,
         reminder_interval_days INTEGER DEFAULT 30,
         preferred_unit_system TEXT DEFAULT 'metric',
+        enabled_tabs TEXT DEFAULT 'dashboard,measure,photos,progress,sizes,profile',
         is_cloud_sync_enabled INTEGER DEFAULT 0,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
@@ -158,6 +159,12 @@ class DatabaseService {
       ''');
       await db.execute(
           'CREATE INDEX IF NOT EXISTS idx_goals_user_id ON goals (user_id)');
+    }
+
+    if (oldVersion < 5) {
+      // Add enabled_tabs column to settings
+      await db.execute(
+          'ALTER TABLE settings ADD COLUMN enabled_tabs TEXT DEFAULT "dashboard,measure,photos,progress,sizes,profile"');
     }
   }
 

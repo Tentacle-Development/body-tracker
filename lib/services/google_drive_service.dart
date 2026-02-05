@@ -22,10 +22,16 @@ class GoogleDriveService {
 
   Future<GoogleSignInAccount?> signIn() async {
     try {
-      _currentUser = await _googleSignIn.signIn();
+      final result = await _googleSignIn.signIn();
+      if (result == null) {
+        debugPrint('Google Sign-In: Result is null (user cancelled or configuration error)');
+      } else {
+        debugPrint('Google Sign-In: Success for ${result.email}');
+      }
+      _currentUser = result;
       return _currentUser;
     } catch (e) {
-      debugPrint('Google Sign-In failed: $e');
+      debugPrint('Google Sign-In failed with error: $e');
       return null;
     }
   }

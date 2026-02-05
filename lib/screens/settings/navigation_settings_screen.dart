@@ -26,11 +26,28 @@ class _NavigationSettingsScreenState extends State<NavigationSettingsScreen> {
   void initState() {
     super.initState();
     final provider = context.read<AppProvider>();
-    _enabledTabs = List.from(provider.settings?.enabledTabs ?? 
-        ['dashboard', 'measure', 'photos', 'progress', 'sizes', 'profile']);
+    final savedTabs = provider.settings?.enabledTabs ?? 
+        ['dashboard', 'measure', 'photos', 'progress', 'sizes', 'profile'];
+    
+    _enabledTabs = List.from(savedTabs);
+
+    // Sort _allTabs based on saved order (enabled first in order, then others)
+    _allTabs.sort((a, b) {
+      final indexA = savedTabs.indexOf(a['id'] as String);
+      final indexB = savedTabs.indexOf(b['id'] as String);
+      
+      if (indexA != -1 && indexB != -1) return indexA.compareTo(indexB);
+      if (indexA != -1) return -1;
+      if (indexB != -1) return 1;
+      return 0;
+    });
   }
 
   void _save() {
+    if (!_enabledTabs.contains('profile')) {
+      _enabledTabs.add('profile');
+    }
+
     if (_enabledTabs.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('At least one tab must be enabled')),
@@ -61,7 +78,8 @@ class _NavigationSettingsScreenState extends State<NavigationSettingsScreen> {
           const Padding(
             padding: EdgeInsets.all(16.0),
             child: Text(
-              'Select which tabs to show in the bottom bar and drag to reorder.',
+              'Drag to reorder. Deactivated tabs appear in the Profile menu.',
+              textAlign: TextAlign.center,
               style: TextStyle(color: AppTheme.textSecondary),
             ),
           ),
@@ -73,7 +91,6 @@ class _NavigationSettingsScreenState extends State<NavigationSettingsScreen> {
                   final item = _allTabs.removeAt(oldIndex);
                   _allTabs.insert(newIndex, item);
                   
-                  // Update enabled tabs list to match new order
                   _updateEnabledTabsOrder();
                 });
               },
@@ -82,38 +99,33 @@ class _NavigationSettingsScreenState extends State<NavigationSettingsScreen> {
                 final tab = _allTabs[index];
                 final id = tab['id'] as String;
                 final isEnabled = _enabledTabs.contains(id);
+                final isProfile = id == 'profile';
 
                 return ListTile(
                   key: ValueKey(id),
                   leading: const Icon(Icons.drag_handle, color: Colors.grey),
                   title: Row(
                     children: [
-                      Icon(tab['icon'] as IconData, size: 20, color: AppTheme.primaryColor),
+                      Icon(tab['icon'] as IconData, size: 20, color: isEnabled ? AppTheme.primaryColor : Colors.grey),
                       const SizedBox(width: 12),
-                      Text(tab['label'] as String),
+                      Text(tab['label'] as String, style: TextStyle(color: isEnabled ? AppTheme.textPrimary : AppTheme.textSecondary)),
                     ],
                   ),
                   trailing: Checkbox(
                     value: isEnabled,
-                    onChanged: (value) {
+                    onChanged: isProfile ? null : (value) {
                       setState(() {
                         if (value == true) {
-                          if (!_enabledTabs.contains(id)) {
-                            _enabledTabs.add(id);
-                            _updateEnabledTabsOrder();
-                          }
+                          _enabledTabs.add(id);
                         } else {
                           if (_enabledTabs.length > 1) {
                             _enabledTabs.remove(id);
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('At least one tab must remain enabled')),
-                            );
                           }
                         }
+                        _updateEnabledTabsOrder();
                       });
                     },
-                    activeColor: AppTheme.primaryColor,
+                    activeColor: isProfile ? Colors.grey : AppTheme.primaryColor,
                   ),
                 );
               },
@@ -125,7 +137,6 @@ class _NavigationSettingsScreenState extends State<NavigationSettingsScreen> {
   }
 
   void _updateEnabledTabsOrder() {
-    // Keep enabled tabs but in the order they appear in _allTabs
     final List<String> newOrder = [];
     for (var tab in _allTabs) {
       if (_enabledTabs.contains(tab['id'])) {
