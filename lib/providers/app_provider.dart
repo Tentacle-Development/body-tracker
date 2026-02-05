@@ -18,6 +18,7 @@ class AppProvider extends ChangeNotifier {
   List<ProgressPhoto> _photos = [];
   List<Goal> _goals = [];
   List<String> _dashboardCategories = ['bmi', 'whr', 'weight', 'height'];
+  String _activeTabId = 'dashboard';
   bool _isLoading = true;
   bool _isFirstLaunch = true;
 
@@ -28,8 +29,14 @@ class AppProvider extends ChangeNotifier {
   List<ProgressPhoto> get photos => _photos;
   List<Goal> get goals => _goals;
   List<String> get dashboardCategories => _dashboardCategories;
+  String get activeTabId => _activeTabId;
   bool get isLoading => _isLoading;
   bool get isFirstLaunch => _isFirstLaunch;
+
+  void setActiveTab(String tabId) {
+    _activeTabId = tabId;
+    notifyListeners();
+  }
 
   Future<void> initialize() async {
     _isLoading = true;

@@ -23,14 +23,11 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _currentIndex = 0;
-
-  Widget _buildNavItem(int index, IconData icon, IconData activeIcon, String label) {
-    final isSelected = _currentIndex == index;
+  Widget _buildNavItem(String tabId, IconData icon, IconData activeIcon, String label, bool isSelected, VoidCallback onTap) {
     final color = isSelected ? AppTheme.primaryColor : AppTheme.textSecondary;
 
     return GestureDetector(
-      onTap: () => setState(() => _currentIndex = index),
+      onTap: onTap,
       child: Container(
         width: 85,
         padding: const EdgeInsets.symmetric(vertical: 8),
@@ -66,46 +63,52 @@ class _HomeScreenState extends State<HomeScreen> {
 
         final List<Widget> tabScreens = [];
         final List<Widget> navItems = [];
+        
+        String activeTabId = provider.activeTabId;
+        if (!enabledTabs.contains(activeTabId)) {
+          activeTabId = enabledTabs.first;
+        }
+
+        int activeIndex = 0;
 
         for (int i = 0; i < enabledTabs.length; i++) {
           final tabId = enabledTabs[i].trim();
+          final isSelected = activeTabId == tabId;
+          if (isSelected) activeIndex = i;
+
           switch (tabId) {
             case 'dashboard':
               tabScreens.add(const DashboardTab());
-              navItems.add(_buildNavItem(i, Icons.dashboard_outlined, Icons.dashboard, 'Dashboard'));
+              navItems.add(_buildNavItem(tabId, Icons.dashboard_outlined, Icons.dashboard, 'Dashboard', isSelected, () => provider.setActiveTab(tabId)));
               break;
             case 'measure':
               tabScreens.add(const MeasurementsTab());
-              navItems.add(_buildNavItem(i, Icons.straighten_outlined, Icons.straighten, 'Measure'));
+              navItems.add(_buildNavItem(tabId, Icons.straighten_outlined, Icons.straighten, 'Measure', isSelected, () => provider.setActiveTab(tabId)));
               break;
             case 'photos':
               tabScreens.add(const PhotoGalleryScreen());
-              navItems.add(_buildNavItem(i, Icons.photo_camera_outlined, Icons.photo_camera, 'Photos'));
+              navItems.add(_buildNavItem(tabId, Icons.photo_camera_outlined, Icons.photo_camera, 'Photos', isSelected, () => provider.setActiveTab(tabId)));
               break;
             case 'progress':
               tabScreens.add(const ProgressChartsTab());
-              navItems.add(_buildNavItem(i, Icons.show_chart_outlined, Icons.show_chart, 'Progress'));
+              navItems.add(_buildNavItem(tabId, Icons.show_chart_outlined, Icons.show_chart, 'Progress', isSelected, () => provider.setActiveTab(tabId)));
               break;
             case 'sizes':
               tabScreens.add(const ClothingSizeScreen());
-              navItems.add(_buildNavItem(i, Icons.checkroom_outlined, Icons.checkroom, 'Sizes'));
+              navItems.add(_buildNavItem(tabId, Icons.checkroom_outlined, Icons.checkroom, 'Sizes', isSelected, () => provider.setActiveTab(tabId)));
               break;
             case 'profile':
               tabScreens.add(const ProfileTab());
-              navItems.add(_buildNavItem(i, Icons.person_outline, Icons.person, 'Profile'));
+              navItems.add(_buildNavItem(tabId, Icons.person_outline, Icons.person, 'Profile', isSelected, () => provider.setActiveTab(tabId)));
               break;
           }
         }
 
-        if (_currentIndex >= tabScreens.length) {
-          _currentIndex = 0;
-        }
-
         return Scaffold(
-          key: ValueKey('home_scaffold_${settings?.updatedAt.millisecondsSinceEpoch ?? 0}_${enabledTabs.length}'),
+          key: ValueKey('home_scaffold_${settings?.updatedAt.millisecondsSinceEpoch ?? 0}'),
           body: IndexedStack(
-            key: ValueKey('stack_${settings?.updatedAt.millisecondsSinceEpoch ?? 0}_${enabledTabs.join('_')}'),
-            index: _currentIndex,
+            key: ValueKey('stack_${settings?.updatedAt.millisecondsSinceEpoch ?? 0}'),
+            index: activeIndex,
             children: tabScreens.isEmpty ? [const Center(child: CircularProgressIndicator())] : tabScreens,
           ),
           bottomNavigationBar: Container(
@@ -125,7 +128,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8.0),
                 child: Row(
-                  key: ValueKey('nav_row_${settings?.updatedAt.millisecondsSinceEpoch ?? 0}_${enabledTabs.length}'),
+                  key: ValueKey('nav_row_${settings?.updatedAt.millisecondsSinceEpoch ?? 0}'),
                   mainAxisSize: MainAxisSize.min,
                   children: navItems,
                 ),

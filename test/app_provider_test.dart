@@ -32,6 +32,12 @@ void main() {
 
     when(mockDatabaseService.database).thenAnswer((_) async => mockDatabase);
     
+    // Stub insert for settings and other tables
+    when(mockDatabase.insert(any, any,
+            nullColumnHack: anyNamed('nullColumnHack'),
+            conflictAlgorithm: anyNamed('conflictAlgorithm')))
+        .thenAnswer((_) async => 1);
+
     // Mock SharedPreferences
     SharedPreferences.setMockInitialValues({});
 

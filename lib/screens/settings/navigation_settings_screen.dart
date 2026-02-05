@@ -59,8 +59,8 @@ class _NavigationSettingsScreenState extends State<NavigationSettingsScreen> {
     final newSettings = provider.settings!.copyWith(enabledTabs: _enabledTabs);
     await provider.updateSettings(newSettings);
     
-    // Explicitly notify provider to refresh
-    await provider.loadSettings();
+    // The provider already calls notifyListeners() in updateSettings.
+    // We don't need loadSettings() here as it might be redundant.
 
     if (mounted) {
       Navigator.pop(context);

@@ -8,6 +8,7 @@ import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import '../../providers/app_provider.dart';
 import '../../services/backup_service.dart';
+import '../../services/google_drive_service.dart';
 import '../../utils/app_theme.dart';
 import '../home/home_screen.dart';
 
@@ -21,6 +22,7 @@ class BackupRestoreScreen extends StatefulWidget {
 class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
   bool _isExporting = false;
   bool _isImporting = false;
+  bool _isSyncing = false;
   String? _statusMessage;
 
   Future<void> _exportBackup() async {
@@ -94,11 +96,8 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
 
   Future<void> _importBackup() async {
     final appProvider = context.read<AppProvider>();
-    
-    // Check if we have a user, if not we need to handle it during onboarding
     int? userId = appProvider.currentUser?.id;
 
-    // Confirm before import
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -124,7 +123,6 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
     if (confirmed != true) return;
 
     try {
-      // Pick ZIP file
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['zip'],
@@ -140,19 +138,15 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
         _statusMessage = 'Extracting backup...';
       });
 
-      // Extract ZIP
       final extractPath = await _extractZip(filePath);
 
       setState(() => _statusMessage = 'Restoring data...');
 
-      // If we don't have a user (onboarding), we perform a "clean restore"
       if (userId == null) {
         await appProvider.clearAllData();
       }
       
       await BackupService.instance.restoreBackup(extractPath, userId);
-
-      // Reload app data
       await appProvider.initialize();
 
       setState(() {
@@ -160,7 +154,6 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
         _statusMessage = 'Backup restored successfully!';
       });
 
-      // Clean up
       await Directory(extractPath).delete(recursive: true);
 
       if (mounted) {
@@ -171,11 +164,10 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
           ),
         );
         
-        // If we were in onboarding, go to home
         if (userId == null) {
           if (mounted) {
             Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(builder: (_) => HomeScreen()),
+              MaterialPageRoute(builder: (_) => const HomeScreen()),
               (route) => false,
             );
           }
@@ -187,6 +179,71 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
         _statusMessage = null;
       });
       _showError('Import failed: $e');
+    }
+  }
+
+  Future<void> _toggleGoogleDrive(bool enabled) async {
+    final provider = context.read<AppProvider>();
+    
+    if (enabled) {
+      setState(() {
+        _isSyncing = true;
+        _statusMessage = 'Signing in to Google...';
+      });
+
+      try {
+        final account = await GoogleDriveService.instance.signIn();
+        if (account == null) {
+          _showError('Google Sign-In failed or cancelled');
+          return;
+        }
+
+        final newSettings = provider.settings!.copyWith(isGoogleDriveSyncEnabled: true);
+        await provider.updateSettings(newSettings);
+        
+        setState(() => _statusMessage = 'Google Drive sync enabled!');
+      } catch (e) {
+        _showError('Failed to enable Google Drive sync: $e');
+      } finally {
+        setState(() => _isSyncing = false);
+      }
+    } else {
+      final newSettings = provider.settings!.copyWith(isGoogleDriveSyncEnabled: false);
+      await provider.updateSettings(newSettings);
+      await GoogleDriveService.instance.signOut();
+      setState(() => _statusMessage = 'Google Drive sync disabled.');
+    }
+  }
+
+  Future<void> _syncToGoogleDrive() async {
+    final provider = context.read<AppProvider>();
+    final userId = provider.currentUser?.id;
+    if (userId == null) return;
+
+    setState(() {
+      _isSyncing = true;
+      _statusMessage = 'Preparing backup...';
+    });
+
+    try {
+      final backupPath = await BackupService.instance.createBackup(userId);
+      final zipPath = await _createZipFromDirectory(backupPath);
+      
+      setState(() => _statusMessage = 'Uploading to Google Drive...');
+      final success = await GoogleDriveService.instance.uploadBackup(zipPath);
+      
+      if (success) {
+        setState(() => _statusMessage = 'Backup uploaded to Google Drive!');
+      } else {
+        _showError('Failed to upload backup to Google Drive');
+      }
+
+      await Directory(backupPath).delete(recursive: true);
+      await File(zipPath).delete();
+    } catch (e) {
+      _showError('Sync failed: $e');
+    } finally {
+      setState(() => _isSyncing = false);
     }
   }
 
@@ -227,18 +284,18 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isLoading = _isExporting || _isImporting;
+    final isLoading = _isExporting || _isImporting || _isSyncing;
+    final isDriveEnabled = context.select<AppProvider, bool>((p) => p.settings?.isGoogleDriveSyncEnabled ?? false);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Backup & Restore'),
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Info card
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -254,17 +311,13 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
                       const SizedBox(width: 8),
                       const Text(
                         'Your Data',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                       ),
                     ],
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Your data is stored locally on this device. '
-                    'Create a backup to save your measurements, photos, and settings.',
+                    'Your data is stored locally. Create a backup to save your measurements, photos, and settings.',
                     style: TextStyle(color: Colors.grey[400], fontSize: 14),
                   ),
                 ],
@@ -272,7 +325,11 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
             ),
             const SizedBox(height: 24),
 
-            // Export button
+            const Text(
+              'Local Backup',
+              style: TextStyle(color: AppTheme.textSecondary, fontSize: 14, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
             _buildActionCard(
               icon: Icons.upload_rounded,
               title: 'Export Backup',
@@ -282,8 +339,6 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
               isLoading: _isExporting,
             ),
             const SizedBox(height: 16),
-
-            // Import button
             _buildActionCard(
               icon: Icons.download_rounded,
               title: 'Restore Backup',
@@ -291,6 +346,62 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
               color: AppTheme.secondaryColor,
               onTap: isLoading ? null : _importBackup,
               isLoading: _isImporting,
+            ),
+
+            const SizedBox(height: 32),
+            const Text(
+              'Cloud Backup',
+              style: TextStyle(color: AppTheme.textSecondary, fontSize: 14, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.cardColor,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.cloud_queue_rounded, color: Colors.blue),
+                      const SizedBox(width: 16),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Google Drive Sync', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                            Text('Store backups in your private Drive folder', style: TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+                          ],
+                        ),
+                      ),
+                      Switch(
+                        value: isDriveEnabled,
+                        onChanged: isLoading ? null : _toggleGoogleDrive,
+                        activeColor: Colors.blue,
+                      ),
+                    ],
+                  ),
+                  if (isDriveEnabled) ...[
+                    const Divider(height: 32, color: Colors.white10),
+                    ElevatedButton.icon(
+                      onPressed: isLoading ? null : _syncToGoogleDrive,
+                      icon: _isSyncing 
+                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Icon(Icons.sync_rounded),
+                      label: const Text('Sync Now'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue.withValues(alpha: 0.2),
+                        foregroundColor: Colors.blue,
+                        elevation: 0,
+                        minimumSize: const Size(double.infinity, 44),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
 
             if (_statusMessage != null) ...[
@@ -304,11 +415,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
                 child: Row(
                   children: [
                     if (isLoading)
-                      const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
+                      const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                     else
                       const Icon(Icons.check_circle, color: Colors.green, size: 16),
                     const SizedBox(width: 8),
@@ -318,9 +425,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
               ),
             ],
 
-            const Spacer(),
-
-            // Backup contents info
+            const SizedBox(height: 24),
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -330,15 +435,13 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Backup includes:',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
+                  const Text('Backup includes:', style: TextStyle(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
                   _buildBulletPoint('User profile'),
                   _buildBulletPoint('All measurements'),
                   _buildBulletPoint('App settings'),
                   _buildBulletPoint('Progress photos'),
+                  _buildBulletPoint('Goals'),
                 ],
               ),
             ),
@@ -386,28 +489,12 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      color: Colors.grey[500],
-                      fontSize: 14,
-                    ),
-                  ),
+                  Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  Text(subtitle, style: TextStyle(color: Colors.grey[500], fontSize: 14)),
                 ],
               ),
             ),
-            Icon(
-              Icons.arrow_forward_ios,
-              color: Colors.grey[600],
-              size: 16,
-            ),
+            Icon(Icons.arrow_forward_ios, color: Colors.grey[600], size: 16),
           ],
         ),
       ),
