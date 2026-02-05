@@ -28,6 +28,10 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
   Future<void> _toggleGoogleDriveSync(bool enabled) async {
     final appProvider = context.read<AppProvider>();
     if (enabled) {
+      setState(() {
+        _isSyncing = true;
+        _statusMessage = 'Connecting to Google...';
+      });
       try {
         final account = await _driveService.signIn();
         if (account != null) {
@@ -36,12 +40,20 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
             await appProvider.updateSettings(settings);
           }
           setState(() {
+            _isSyncing = false;
             _statusMessage = 'Google Drive linked for ${account.email}';
           });
         } else {
-          setState(() => _statusMessage = 'Google Sign-In cancelled');
+          setState(() {
+            _isSyncing = false;
+            _statusMessage = 'Google Sign-In failed or cancelled';
+          });
         }
       } catch (e) {
+        setState(() {
+          _isSyncing = false;
+          _statusMessage = 'Setup error: $e';
+        });
         _showError('Google Drive setup failed: $e');
       }
     } else {
@@ -52,8 +64,6 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
       }
       setState(() => _statusMessage = 'Google Drive unlinked');
     }
-    // Force a rebuild to update the switch UI state
-    setState(() {});
   }
 
   Future<void> _syncToGoogleDrive() async {

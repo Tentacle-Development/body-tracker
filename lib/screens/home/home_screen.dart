@@ -57,7 +57,7 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8.0),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              mainAxisSize: MainAxisSize.min, // Ensure row doesn't force items to stretch
               children: [
                 _buildNavItem(0, Icons.dashboard_outlined, Icons.dashboard, 'Dashboard'),
                 _buildNavItem(1, Icons.straighten_outlined, Icons.straighten, 'Measure'),
@@ -77,21 +77,24 @@ class _HomeScreenState extends State<HomeScreen> {
     final isSelected = _currentIndex == index;
     final color = isSelected ? AppTheme.primaryColor : AppTheme.textSecondary;
 
-    return InkWell(
+    return GestureDetector( // Using GestureDetector instead of InkWell for more control
       onTap: () => setState(() => _currentIndex = index),
       child: Container(
-        width: 80,
+        width: 85, // Slightly wider to avoid truncation
         padding: const EdgeInsets.symmetric(vertical: 8),
+        color: Colors.transparent, // Make entire area tappable
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(isSelected ? activeIcon : icon, color: color),
+            Icon(isSelected ? activeIcon : icon, color: color, size: 24),
             const SizedBox(height: 4),
             Text(
               label,
+              maxLines: 1,
+              overflow: TextOverflow.visible, // Don't truncate labels
               style: TextStyle(
                 color: color,
-                fontSize: 12,
+                fontSize: 11, // Slightly smaller font to fit
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
             ),
