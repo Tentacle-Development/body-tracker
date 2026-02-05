@@ -57,7 +57,7 @@ class BackupService {
       csvLines.add([
         g['id'],
         g['user_id'],
-        _escapeCsv(g['type'] as String),
+        escapeCsv(g['type'] as String),
         g['start_value'],
         g['target_value'],
         g['start_date'],
@@ -83,8 +83,8 @@ class BackupService {
     for (final user in users) {
       csvLines.add([
         user['id'],
-        _escapeCsv(user['name'] as String),
-        _escapeCsv(user['gender'] as String),
+        escapeCsv(user['name'] as String),
+        escapeCsv(user['gender'] as String),
         user['date_of_birth'],
         user['created_at'],
         user['updated_at'],
@@ -111,9 +111,9 @@ class BackupService {
       csvLines.add([
         m['id'],
         m['user_id'],
-        _escapeCsv(m['type'] as String),
+        escapeCsv(m['type'] as String),
         m['value'],
-        _escapeCsv(m['unit'] as String),
+        escapeCsv(m['unit'] as String),
         m['measured_at'],
         m['created_at'],
       ].join(','));
@@ -134,7 +134,7 @@ class BackupService {
     csvLines.add(header.join(','));
     
     for (final s in settings) {
-      csvLines.add(header.map((key) => _escapeCsv(s[key]?.toString() ?? '')).join(','));
+      csvLines.add(header.map((key) => escapeCsv(s[key]?.toString() ?? '')).join(','));
     }
     
     final file = File(path.join(backupPath, 'settings.csv'));
@@ -190,8 +190,8 @@ class BackupService {
       csvLines.add([
         photo.id,
         newFilename,
-        _escapeCsv(category),
-        _escapeCsv(photo.notes ?? ''),
+        escapeCsv(category),
+        escapeCsv(photo.notes ?? ''),
         photo.weight ?? '',
         photo.takenAt.toIso8601String(),
         photo.createdAt.toIso8601String(),
@@ -240,7 +240,7 @@ class BackupService {
 
     for (int i = 1; i < lines.length; i++) {
       if (lines[i].trim().isEmpty) continue;
-      final values = _parseCsvLine(lines[i]);
+      final values = parseCsvLine(lines[i]);
       if (values.length < 9) continue;
 
       await db.insert('goals', {
@@ -263,7 +263,7 @@ class BackupService {
     final lines = await file.readAsLines();
     if (lines.length < 2) throw Exception('Backup profile empty');
     
-    final values = _parseCsvLine(lines[1]);
+    final values = parseCsvLine(lines[1]);
     if (values.length < 6) throw Exception('Invalid backup profile');
     
     final db = await DatabaseService.instance.database;
@@ -287,7 +287,7 @@ class BackupService {
     final lines = await file.readAsLines();
     if (lines.length < 2) return;
     
-    final values = _parseCsvLine(lines[1]);
+    final values = parseCsvLine(lines[1]);
     if (values.length < 6) return;
     
     final db = await DatabaseService.instance.database;
@@ -317,7 +317,7 @@ class BackupService {
     await db.delete('measurements', where: 'user_id = ?', whereArgs: [userId]);
     
     for (int i = 1; i < lines.length; i++) {
-      final values = _parseCsvLine(lines[i]);
+      final values = parseCsvLine(lines[i]);
       if (values.length < 7) continue;
       
       await db.insert('measurements', {
@@ -338,8 +338,8 @@ class BackupService {
     final lines = await file.readAsLines();
     if (lines.length < 2) return;
     
-    final header = _parseCsvLine(lines[0]);
-    final values = _parseCsvLine(lines[1]);
+    final header = parseCsvLine(lines[0]);
+    final values = parseCsvLine(lines[1]);
     
     final db = await DatabaseService.instance.database;
     
@@ -402,7 +402,7 @@ class BackupService {
     for (int i = 1; i < lines.length; i++) {
       if (lines[i].trim().isEmpty) continue;
       
-      final values = _parseCsvLine(lines[i]);
+      final values = parseCsvLine(lines[i]);
       if (values.length < 6) {
         debugPrint('Backup: Skipping photo line $i due to insufficient columns');
         continue;
@@ -471,14 +471,16 @@ class BackupService {
     debugPrint('Backup: Imported $importedCount photos');
   }
 
-  String _escapeCsv(String value) {
+  @visibleForTesting
+  String escapeCsv(String value) {
     if (value.contains(',') || value.contains('"') || value.contains('\n')) {
       return '"${value.replaceAll('"', '""')}"';
     }
     return value;
   }
 
-  List<String> _parseCsvLine(String line) {
+  @visibleForTesting
+  List<String> parseCsvLine(String line) {
     final result = <String>[];
     bool inQuotes = false;
     StringBuffer current = StringBuffer();
