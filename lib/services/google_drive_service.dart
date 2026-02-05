@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:googleapis_auth/googleapis_auth.dart' as auth;
@@ -22,6 +23,7 @@ class GoogleDriveService {
 
   Future<GoogleSignInAccount?> signIn() async {
     try {
+      debugPrint('Google Drive: Starting sign-in process...');
       final result = await _googleSignIn.signIn();
       if (result == null) {
         debugPrint('Google Sign-In: Result is null (user cancelled or configuration error)');
@@ -30,8 +32,23 @@ class GoogleDriveService {
       }
       _currentUser = result;
       return _currentUser;
+    } on PlatformException catch (e) {
+      debugPrint('Google Sign-In failed with PlatformException:');
+      debugPrint('  Code: ${e.code}');
+      debugPrint('  Message: ${e.message}');
+      debugPrint('  Details: ${e.details}');
+      
+      String friendlyMessage = 'Google login failed.';
+      if (e.code == 'sign_in_failed') {
+        friendlyMessage = 'Google sign in failed. Please ensure the app is registered in Google Cloud Console.';
+      } else if (e.code == 'network_error') {
+        friendlyMessage = 'Network error during Google sign in.';
+      }
+      
+      // We could throw or handle here, but we return null to signify failure
+      return null;
     } catch (e) {
-      debugPrint('Google Sign-In failed with error: $e');
+      debugPrint('Google Sign-In failed with unexpected error: $e');
       return null;
     }
   }
