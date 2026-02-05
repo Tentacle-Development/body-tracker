@@ -191,12 +191,10 @@ class DashboardTab extends StatelessWidget {
                           AppTheme.primaryColor,
                           onTap: () {
                             final weightGuide = MeasurementGuide.guides.firstWhere((g) => g.type == 'weight');
-                            final weightHistory = provider.getMeasurementsByType('weight');
                             Navigator.of(context).push(
                               MaterialPageRoute(
                                 builder: (_) => MeasurementDetailScreen(
                                   guide: weightGuide,
-                                  history: weightHistory,
                                 ),
                               ),
                             );
@@ -212,12 +210,10 @@ class DashboardTab extends StatelessWidget {
                           AppTheme.secondaryColor,
                           onTap: () {
                             final waistGuide = MeasurementGuide.guides.firstWhere((g) => g.type == 'waist');
-                            final waistHistory = provider.getMeasurementsByType('waist');
                             Navigator.of(context).push(
                               MaterialPageRoute(
                                 builder: (_) => MeasurementDetailScreen(
                                   guide: waistGuide,
-                                  history: waistHistory,
                                 ),
                               ),
                             );
@@ -225,7 +221,6 @@ class DashboardTab extends StatelessWidget {
                         );
                       } else {
                         final guide = MeasurementGuide.guides.firstWhere((g) => g.type == cat);
-                        final history = provider.getMeasurementsByType(cat);
                         final latest = provider.getLatestMeasurement(cat);
 
                         return _buildStatCard(
@@ -240,7 +235,6 @@ class DashboardTab extends StatelessWidget {
                               MaterialPageRoute(
                                 builder: (_) => MeasurementDetailScreen(
                                   guide: guide,
-                                  history: history,
                                 ),
                               ),
                             );
@@ -397,9 +391,8 @@ class MeasurementsTab extends StatelessWidget {
                     itemCount: MeasurementGuide.guides.length,
                     itemBuilder: (context, index) {
                       final guide = MeasurementGuide.guides[index];
-                      final latest = provider.getLatestMeasurement(guide.type);
                       return GestureDetector(
-                        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => MeasurementDetailScreen(guide: guide, history: provider.getMeasurementsByType(guide.type)))),
+                        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => MeasurementDetailScreen(guide: guide))),
                         child: Container(
                           decoration: BoxDecoration(color: AppTheme.cardColor, borderRadius: BorderRadius.circular(16)),
                           child: Column(
@@ -408,7 +401,6 @@ class MeasurementsTab extends StatelessWidget {
                               Icon(guide.icon, color: guide.color, size: 24),
                               const SizedBox(height: 8),
                               Text(guide.title, style: const TextStyle(fontSize: 12)),
-                              if (latest != null) Text('${latest.value}${guide.unit}', style: TextStyle(color: guide.color, fontSize: 10)),
                             ],
                           ),
                         ),
