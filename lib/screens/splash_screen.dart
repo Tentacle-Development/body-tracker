@@ -50,10 +50,19 @@ class _SplashScreenState extends State<SplashScreen>
     });
   }
 
-  void _navigateToNext() {
+  void _navigateToNext() async {
     if (!mounted) return;
     
     final provider = Provider.of<AppProvider>(context, listen: false);
+
+    // Ensure we wait for the data to be loaded before deciding which screen to show
+    int timeout = 0;
+    while (provider.isLoading && timeout < 50) { // Max 5 seconds wait
+      await Future.delayed(const Duration(milliseconds: 100));
+      timeout++;
+    }
+
+    if (!mounted) return;
 
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(

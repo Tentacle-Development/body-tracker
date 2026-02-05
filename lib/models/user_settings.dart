@@ -3,6 +3,8 @@ class UserSettings {
   final int userId;
   final int reminderIntervalDays;
   final String preferredUnitSystem;
+  final bool isCloudSyncEnabled;
+  final bool isGoogleDriveSyncEnabled;
   final List<String> enabledTabs;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -12,6 +14,8 @@ class UserSettings {
     required this.userId,
     this.reminderIntervalDays = 30,
     this.preferredUnitSystem = 'metric',
+    this.isCloudSyncEnabled = false,
+    this.isGoogleDriveSyncEnabled = false,
     this.enabledTabs = const ['dashboard', 'measure', 'photos', 'progress', 'sizes', 'profile'],
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -24,6 +28,8 @@ class UserSettings {
       'user_id': userId,
       'reminder_interval_days': reminderIntervalDays,
       'preferred_unit_system': preferredUnitSystem,
+      'is_cloud_sync_enabled': isCloudSyncEnabled ? 1 : 0,
+      'is_google_drive_sync_enabled': isGoogleDriveSyncEnabled ? 1 : 0,
       'enabled_tabs': enabledTabs.join(','),
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
@@ -36,7 +42,12 @@ class UserSettings {
       userId: map['user_id'] as int,
       reminderIntervalDays: map['reminder_interval_days'] as int? ?? 30,
       preferredUnitSystem: map['preferred_unit_system'] as String? ?? 'metric',
-      enabledTabs: (map['enabled_tabs'] as String? ?? 'dashboard,measure,photos,progress,sizes,profile').split(','),
+      isCloudSyncEnabled: (map['is_cloud_sync_enabled'] as int? ?? 0) == 1,
+      isGoogleDriveSyncEnabled: (map['is_google_drive_sync_enabled'] as int? ?? 0) == 1,
+      enabledTabs: (map['enabled_tabs'] as String? ?? 'dashboard,measure,photos,progress,sizes,profile')
+          .split(',')
+          .where((t) => t.isNotEmpty)
+          .toList(),
       createdAt: DateTime.parse(map['created_at'] as String),
       updatedAt: DateTime.parse(map['updated_at'] as String),
     );
@@ -47,6 +58,8 @@ class UserSettings {
     int? userId,
     int? reminderIntervalDays,
     String? preferredUnitSystem,
+    bool? isCloudSyncEnabled,
+    bool? isGoogleDriveSyncEnabled,
     List<String>? enabledTabs,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -56,6 +69,8 @@ class UserSettings {
       userId: userId ?? this.userId,
       reminderIntervalDays: reminderIntervalDays ?? this.reminderIntervalDays,
       preferredUnitSystem: preferredUnitSystem ?? this.preferredUnitSystem,
+      isCloudSyncEnabled: isCloudSyncEnabled ?? this.isCloudSyncEnabled,
+      isGoogleDriveSyncEnabled: isGoogleDriveSyncEnabled ?? this.isGoogleDriveSyncEnabled,
       enabledTabs: enabledTabs ?? this.enabledTabs,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
