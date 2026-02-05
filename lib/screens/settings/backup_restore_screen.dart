@@ -8,7 +8,6 @@ import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import '../../providers/app_provider.dart';
 import '../../services/backup_service.dart';
-import '../../services/google_drive_service.dart';
 import '../../utils/app_theme.dart';
 
 class BackupRestoreScreen extends StatefulWidget {
@@ -19,148 +18,18 @@ class BackupRestoreScreen extends StatefulWidget {
 }
 
 class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
-  final GoogleDriveService _driveService = GoogleDriveService.instance;
   bool _isExporting = false;
   bool _isImporting = false;
-  bool _isSyncing = false;
   String? _statusMessage;
-
-  Future<void> _toggleGoogleDriveSync(bool enabled) async {
-    final appProvider = context.read<AppProvider>();
-    if (enabled) {
-      setState(() {
-        _isSyncing = true;
-        _statusMessage = 'Connecting to Google...';
-      });
-      try {
-        final account = await _driveService.signIn();
-        if (account != null) {
-          if (appProvider.settings != null) {
-            final settings = appProvider.settings!.copyWith(isGoogleDriveSyncEnabled: true);
-            await appProvider.updateSettings(settings);
-          }
-          setState(() {
-            _isSyncing = false;
-            _statusMessage = 'Google Drive linked for ${account.email}';
-          });
-        } else {
-          setState(() {
-            _isSyncing = false;
-            _statusMessage = 'Google Sign-In failed or cancelled';
-          });
-        }
-      } catch (e) {
-        setState(() {
-          _isSyncing = false;
-          _statusMessage = 'Setup error: $e';
-        });
-        _showError('Google Drive setup failed: $e');
-      }
-    } else {
-      await _driveService.signOut();
-      if (appProvider.settings != null) {
-        final settings = appProvider.settings!.copyWith(isGoogleDriveSyncEnabled: false);
-        await appProvider.updateSettings(settings);
-      }
-      setState(() => _statusMessage = 'Google Drive unlinked');
-    }
-  }
-
-  Future<void> _syncToGoogleDrive() async {
-    final appProvider = context.read<AppProvider>();
-    final userId = appProvider.currentUser?.id;
-    if (userId == null) return;
-
-    setState(() {
-      _isSyncing = true;
-      _statusMessage = 'Uploading to Google Drive...';
-    });
-
-    try {
-      final backupPath = await BackupService.instance.createBackup(userId);
-      final zipPath = await _createZipFromDirectory(backupPath);
-      
-      final success = await _driveService.uploadBackup(zipPath);
-      
-      // Cleanup
-      await Directory(backupPath).delete(recursive: true);
-      await File(zipPath).delete();
-
-      setState(() {
-        _isSyncing = false;
-        _statusMessage = success ? 'Uploaded to Google Drive!' : 'Upload failed';
-      });
-    } catch (e) {
-      setState(() {
-        _isSyncing = false;
-        _statusMessage = 'Sync failed: $e';
-      });
-    }
-  }
-
-  Future<void> _restoreFromGoogleDrive() async {
-    final appProvider = context.read<AppProvider>();
-    
-    setState(() {
-      _isSyncing = true;
-      _statusMessage = 'Fetching backups from Google Drive...';
-    });
-
-    try {
-      final files = await _driveService.listBackups();
-      if (files.isEmpty) {
-        setState(() {
-          _isSyncing = false;
-          _statusMessage = 'No backups found on Google Drive';
-        });
-        return;
-      }
-
-      // In a real app, we'd show a picker. For now, take the latest.
-      final latest = files.first;
-      final localPath = await _driveService.downloadBackup(latest.id!, latest.name!);
-      
-      if (localPath != null) {
-        setState(() => _statusMessage = 'Extracting Google Drive backup...');
-        final extractPath = await _extractZip(localPath);
-        
-        final userId = appProvider.currentUser?.id ?? -1;
-        await BackupService.instance.restoreBackup(extractPath, userId);
-        await appProvider.initialize();
-
-        await Directory(extractPath).delete(recursive: true);
-        await File(localPath).delete();
-
-        setState(() {
-          _isSyncing = false;
-          _statusMessage = 'Restored from Google Drive!';
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _isSyncing = false;
-        _statusMessage = 'Restore failed: $e';
-      });
-    }
-  }
 
   Future<void> _exportBackup() async {
     final appProvider = context.read<AppProvider>();
     final userId = appProvider.currentUser?.id;
     if (userId == null) {
-      // If no user profile found, try to use the first user if available
-      if (appProvider.users.isNotEmpty) {
-        final firstUser = appProvider.users.first;
-        _exportWithId(firstUser.id!);
-      } else {
-        _showError('No user profile found to backup');
-      }
+      _showError('No user profile found');
       return;
     }
-    _exportWithId(userId);
-  }
 
-  Future<void> _exportWithId(int userId) async {
     setState(() {
       _isExporting = true;
       _statusMessage = 'Creating backup...';
@@ -224,17 +93,11 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
 
   Future<void> _importBackup() async {
     final appProvider = context.read<AppProvider>();
-    
-    // Pick ZIP file
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['zip'],
-    );
-
-    if (result == null || result.files.isEmpty) return;
-
-    final filePath = result.files.first.path;
-    if (filePath == null) return;
+    final userId = appProvider.currentUser?.id;
+    if (userId == null) {
+      _showError('No user profile found');
+      return;
+    }
 
     // Confirm before import
     final confirmed = await showDialog<bool>(
@@ -242,8 +105,8 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Restore Backup'),
         content: const Text(
-          'This will restore data from the backup file. '
-          'Existing data might be affected.\n\nContinue?',
+          'This will replace all your current data with the backup data. '
+          'This action cannot be undone.\n\nContinue?',
         ),
         actions: [
           TextButton(
@@ -261,19 +124,29 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
 
     if (confirmed != true) return;
 
-    setState(() {
-      _isImporting = true;
-      _statusMessage = 'Extracting backup...';
-    });
-
     try {
+      // Pick ZIP file
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['zip'],
+      );
+
+      if (result == null || result.files.isEmpty) return;
+
+      final filePath = result.files.first.path;
+      if (filePath == null) return;
+
+      setState(() {
+        _isImporting = true;
+        _statusMessage = 'Extracting backup...';
+      });
+
       // Extract ZIP
       final extractPath = await _extractZip(filePath);
 
       setState(() => _statusMessage = 'Restoring data...');
 
       // Restore from backup
-      final userId = appProvider.currentUser?.id ?? -1;
       await BackupService.instance.restoreBackup(extractPath, userId);
 
       // Reload app data
@@ -386,10 +259,6 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
             ),
             const SizedBox(height: 24),
 
-            // Google Drive Card
-            _buildGoogleDriveCard(),
-            const SizedBox(height: 24),
-
             // Export button
             _buildActionCard(
               icon: Icons.upload_rounded,
@@ -421,7 +290,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
                 ),
                 child: Row(
                   children: [
-                    if (isLoading || _isSyncing)
+                    if (isLoading)
                       const SizedBox(
                         width: 16,
                         height: 16,
@@ -528,88 +397,6 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildGoogleDriveCard() {
-    final appProvider = context.watch<AppProvider>();
-    final isEnabled = (appProvider.settings?.isGoogleDriveSyncEnabled ?? false) || _driveService.currentUser != null;
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppTheme.cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isEnabled ? Colors.blue.withValues(alpha: 0.5) : Colors.transparent,
-        ),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: (isEnabled ? Colors.blue : Colors.grey).withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  Icons.add_to_drive_rounded,
-                  color: isEnabled ? Colors.blue : Colors.grey,
-                ),
-              ),
-              const SizedBox(width: 16),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Google Drive',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    Text(
-                      'Personal Drive Backup',
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Switch(
-                value: isEnabled,
-                onChanged: _isSyncing ? null : _toggleGoogleDriveSync,
-                activeColor: Colors.blue,
-              ),
-            ],
-          ),
-          if (isEnabled) ...[
-            const Divider(height: 32),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                TextButton.icon(
-                  onPressed: _isSyncing ? null : _syncToGoogleDrive,
-                  icon: const Icon(Icons.cloud_upload_outlined, size: 18),
-                  label: const Text('Backup Now'),
-                ),
-                const SizedBox(width: 8),
-                TextButton.icon(
-                  onPressed: _isSyncing ? null : _restoreFromGoogleDrive,
-                  icon: const Icon(Icons.cloud_download_outlined, size: 18),
-                  label: const Text('Restore'),
-                ),
-              ],
-            ),
-          ],
-        ],
       ),
     );
   }

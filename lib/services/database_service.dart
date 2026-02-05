@@ -159,21 +159,6 @@ class DatabaseService {
       await db.execute(
           'CREATE INDEX IF NOT EXISTS idx_goals_user_id ON goals (user_id)');
     }
-
-    if (oldVersion < 5) {
-      // Add is_cloud_sync_enabled column to settings
-      await db.execute('ALTER TABLE settings ADD COLUMN is_cloud_sync_enabled INTEGER DEFAULT 0');
-    }
-
-    if (oldVersion < 6) {
-      // Add is_google_drive_sync_enabled column to settings
-      await db.execute('ALTER TABLE settings ADD COLUMN is_google_drive_sync_enabled INTEGER DEFAULT 0');
-    }
-
-    if (oldVersion < 7) {
-      // Add enabled_tabs column to settings
-      await db.execute('ALTER TABLE settings ADD COLUMN enabled_tabs TEXT DEFAULT "dashboard,measure,photos,progress,sizes,profile"');
-    }
   }
 
   Future<void> close() async {

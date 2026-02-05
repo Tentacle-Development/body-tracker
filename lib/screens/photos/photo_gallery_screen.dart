@@ -97,12 +97,8 @@ class _PhotoGalleryScreenState extends State<PhotoGalleryScreen>
         weight: weight,
       );
 
-      await appProvider.addPhoto(photo);
-
-      // Save weight as measurement if provided
-      if (weight != null) {
-        await appProvider.syncPhotoWeight(weight, photo.takenAt);
-      }
+      await PhotoService.instance.addPhoto(photo);
+      await appProvider.loadPhotos();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -312,7 +308,8 @@ class _PhotoGalleryScreenState extends State<PhotoGalleryScreen>
             builder: (context) => PhotoViewScreen(
               photo: photo,
               onDelete: () async {
-                await context.read<AppProvider>().deletePhoto(photo);
+                await PhotoService.instance.deletePhotoRecord(photo);
+                await context.read<AppProvider>().loadPhotos();
               },
             ),
           ),

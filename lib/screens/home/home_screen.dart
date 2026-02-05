@@ -11,11 +11,8 @@ import 'progress_charts_tab.dart';
 import '../settings/backup_restore_screen.dart';
 import '../settings/dashboard_customize_screen.dart';
 import '../settings/reminder_settings_screen.dart';
-import '../settings/reminder_settings_screen.dart';
 import '../settings/goals_screen.dart';
 import '../settings/clothing_size_screen.dart';
-import '../settings/profile_management_screen.dart';
-import '../settings/navigation_settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -105,7 +102,13 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
-        children: tabScreens,
+        children: const [
+          DashboardTab(),
+          MeasurementsTab(),
+          PhotoGalleryScreen(),
+          ProgressChartsTab(),
+          ProfileTab(),
+        ],
       ),
       bottomNavigationBar: Container(
         height: 70,
@@ -119,15 +122,37 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: navItems,
+        child: BottomNavigationBar(
+          currentIndex: _currentIndex,
+          onTap: (index) => setState(() => _currentIndex = index),
+          type: BottomNavigationBarType.fixed,
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.dashboard_outlined),
+              activeIcon: Icon(Icons.dashboard),
+              label: 'Dashboard',
             ),
-          ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.straighten_outlined),
+              activeIcon: Icon(Icons.straighten),
+              label: 'Measure',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.photo_camera_outlined),
+              activeIcon: Icon(Icons.photo_camera),
+              label: 'Photos',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.show_chart_outlined),
+              activeIcon: Icon(Icons.show_chart),
+              label: 'Progress',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person_outline),
+              activeIcon: Icon(Icons.person),
+              label: 'Profile',
+            ),
+          ],
         ),
       ),
     );
@@ -603,62 +628,51 @@ class ProfileTab extends StatelessWidget {
                   return const Center(child: Text('No profile found'));
                 }
                 
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const ProfileManagementScreen(),
+                return Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppTheme.cardColor,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 60,
+                        height: 60,
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryColor.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        child: const Icon(
+                          Icons.person,
+                          color: AppTheme.primaryColor,
+                          size: 30,
+                        ),
                       ),
-                    );
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: AppTheme.cardColor,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.3)),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            color: AppTheme.primaryColor.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                          child: const Icon(
-                            Icons.person,
-                            color: AppTheme.primaryColor,
-                            size: 30,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                user.name,
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.textPrimary,
-                                ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              user.name,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.textPrimary,
                               ),
-                              Text(
-                                '${user.age} years old • ${user.gender}',
-                                style: const TextStyle(
-                                  color: AppTheme.textSecondary,
-                                  fontSize: 14,
-                                ),
+                            ),
+                            Text(
+                              '${user.age} years old • ${user.gender}',
+                              style: const TextStyle(
+                                color: AppTheme.textSecondary,
+                                fontSize: 14,
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                        const Icon(Icons.swap_horiz, color: AppTheme.primaryColor),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 );
               },
@@ -689,68 +703,6 @@ class ProfileTab extends StatelessWidget {
               },
             ),
             const SizedBox(height: 12),
-
-            _buildSettingsItem(
-              context,
-              icon: Icons.navigation_outlined,
-              title: 'Navigation',
-              subtitle: 'Customize bottom bar tabs',
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const NavigationSettingsScreen(),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 12),
-
-            // Show disabled tabs as menu items
-            Consumer<AppProvider>(
-              builder: (context, provider, child) {
-                final enabledTabs = provider.settings?.enabledTabs ?? [];
-                final List<Widget> disabledItems = [];
-                
-                if (!enabledTabs.contains('dashboard')) {
-                  disabledItems.add(_buildSettingsItem(context, icon: Icons.dashboard_outlined, title: 'Dashboard', subtitle: 'View your overview', onTap: () {
-                    // Navigate to Dashboard logic if needed or just switch tab
-                  }));
-                }
-                if (!enabledTabs.contains('measure')) {
-                  disabledItems.add(_buildSettingsItem(context, icon: Icons.straighten_outlined, title: 'Measure', subtitle: 'Add new data', onTap: () {
-                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GuidedMeasurementFlow()));
-                  }));
-                }
-                if (!enabledTabs.contains('photos')) {
-                  disabledItems.add(_buildSettingsItem(context, icon: Icons.photo_camera_outlined, title: 'Photos', subtitle: 'Progress gallery', onTap: () {
-                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PhotoGalleryScreen()));
-                  }));
-                }
-                if (!enabledTabs.contains('progress')) {
-                  disabledItems.add(_buildSettingsItem(context, icon: Icons.show_chart_outlined, title: 'Progress', subtitle: 'Statistics & Charts', onTap: () {
-                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProgressChartsTab()));
-                  }));
-                }
-                if (!enabledTabs.contains('sizes')) {
-                  disabledItems.add(_buildSettingsItem(context, icon: Icons.checkroom_outlined, title: 'Clothing Sizes', subtitle: 'Your size guide', onTap: () {
-                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ClothingSizeScreen()));
-                  }));
-                }
-
-                if (disabledItems.isEmpty) return const SizedBox.shrink();
-
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 8.0),
-                      child: Text('Extra Features', style: TextStyle(color: AppTheme.textSecondary, fontSize: 14)),
-                    ),
-                    ...disabledItems.expand((item) => [item, const SizedBox(height: 12)]),
-                  ],
-                );
-              },
-            ),
             
             _buildSettingsItem(
               context,
@@ -761,6 +713,21 @@ class ProfileTab extends StatelessWidget {
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => const GoalsScreen(),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+            
+            _buildSettingsItem(
+              context,
+              icon: Icons.checkroom_outlined,
+              title: 'Clothing Sizes',
+              subtitle: 'Your size based on measurements',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const ClothingSizeScreen(),
                   ),
                 );
               },

@@ -48,13 +48,11 @@ class AppProvider extends ChangeNotifier {
       // Set current user to first user if exists
       if (_users.isNotEmpty) {
         _currentUser = _users.first;
-        await Future.wait([
-          loadMeasurements(),
-          loadPhotos(),
-          loadDashboardCategories(),
-          loadSettings(),
-          loadGoals(),
-        ]);
+        await loadMeasurements();
+        await loadPhotos();
+        await loadDashboardCategories();
+        await loadSettings();
+        await loadGoals();
       }
     } catch (e) {
       debugPrint('Error initializing app: $e');
@@ -217,16 +215,12 @@ class AppProvider extends ChangeNotifier {
 
     final interval = _settings!.reminderIntervalDays;
     if (interval > 0) {
-      try {
-        await NotificationService.instance.scheduleReminder(
-          id: 1,
-          title: 'Time to Measure!',
-          body: "Don't forget to track your body progress today. Stay consistent!",
-          intervalDays: interval,
-        );
-      } catch (e) {
-        debugPrint('Error scheduling reminder: $e');
-      }
+      await NotificationService.instance.scheduleReminder(
+        id: 1,
+        title: 'Time to Measure!',
+        body: "Don't forget to track your body progress today. Stay consistent!",
+        intervalDays: interval,
+      );
     } else {
       await NotificationService.instance.cancelAll();
     }

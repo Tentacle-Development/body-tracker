@@ -124,21 +124,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     ),
                     const SizedBox(width: 16),
                     TextButton.icon(
-                      onPressed: () async {
-                        await Navigator.of(context).push(
+                      onPressed: () {
+                        Navigator.of(context).push(
                           MaterialPageRoute(
                             builder: (_) => const BackupRestoreScreen(),
                           ),
                         );
-                        // Check if restore was successful (user created)
-                        if (mounted) {
-                          final provider = Provider.of<AppProvider>(context, listen: false);
-                          if (!provider.isFirstLaunch) {
-                            Navigator.of(context).pushReplacement(
-                              MaterialPageRoute(builder: (_) => const HomeScreen()),
-                            );
-                          }
-                        }
                       },
                       icon: const Icon(Icons.restore, size: 18, color: AppTheme.primaryColor),
                       label: const Text(

@@ -2,7 +2,7 @@ name: body_tracker
 description: "Body measurement tracking app with health statistics and clothing size guide."
 publish_to: 'none'
 
-version: 1.10.0+23
+version: 1.8.0+21
 
 environment:
   sdk: ^3.10.8
@@ -41,9 +41,6 @@ dependencies:
   archive: ^4.0.7
   file_picker: ^10.3.10
   timezone: ^0.9.4
-  googleapis: ^13.2.0
-  googleapis_auth: ^1.6.0
-  google_sign_in: ^6.2.1
 
 dev_dependencies:
   flutter_test:
