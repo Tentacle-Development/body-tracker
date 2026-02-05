@@ -35,7 +35,9 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
             final settings = appProvider.settings!.copyWith(isGoogleDriveSyncEnabled: true);
             await appProvider.updateSettings(settings);
           }
-          setState(() => _statusMessage = 'Google Drive linked for ${account.email}');
+          setState(() {
+            _statusMessage = 'Google Drive linked for ${account.email}';
+          });
         } else {
           setState(() => _statusMessage = 'Google Sign-In cancelled');
         }
@@ -50,6 +52,8 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
       }
       setState(() => _statusMessage = 'Google Drive unlinked');
     }
+    // Force a rebuild to update the switch UI state
+    setState(() {});
   }
 
   Future<void> _syncToGoogleDrive() async {
