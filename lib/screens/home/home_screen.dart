@@ -102,7 +102,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
-        children: tabScreens,
+        children: tabScreens.isEmpty ? [const Center(child: CircularProgressIndicator())] : tabScreens,
       ),
       bottomNavigationBar: Container(
         height: 70,
