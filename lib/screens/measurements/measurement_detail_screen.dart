@@ -158,17 +158,61 @@ class MeasurementDetailScreen extends StatelessWidget {
 
   Future<void> _editEntry(BuildContext context, AppProvider provider, Measurement item) async {
     final controller = TextEditingController(text: item.value.toString());
-    final newValue = await showDialog<double>(
+    DateTime selectedDate = item.measuredAt;
+    
+    final result = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Edit Entry'),
-        content: TextField(controller: controller, keyboardType: TextInputType.number, autofocus: true),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.pop(context, double.tryParse(controller.text)), child: const Text('Save')),
-        ],
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Edit Entry'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: controller,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                autofocus: true,
+                decoration: InputDecoration(suffixText: guide.unit),
+              ),
+              const SizedBox(height: 16),
+              TextButton.icon(
+                icon: const Icon(Icons.calendar_today, size: 18),
+                label: Text(DateFormat('MMM d, y').format(selectedDate)),
+                onPressed: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: selectedDate,
+                    firstDate: DateTime(2000),
+                    lastDate: DateTime.now(),
+                  );
+                  if (picked != null) {
+                    setDialogState(() => selectedDate = picked);
+                  }
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: () {
+                final value = double.tryParse(controller.text);
+                if (value != null) {
+                  Navigator.pop(context, {'value': value, 'date': selectedDate});
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        ),
       ),
     );
-    if (newValue != null) provider.updateMeasurement(item.copyWith(value: newValue));
+
+    if (result != null) {
+      provider.updateMeasurement(item.copyWith(
+        value: result['value'] as double,
+        measuredAt: result['date'] as DateTime,
+      ));
+    }
   }
 }
