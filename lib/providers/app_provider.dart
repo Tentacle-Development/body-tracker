@@ -310,6 +310,22 @@ class AppProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> syncPhotoWeight(double weight, DateTime takenAt) async {
+    if (_currentUser == null || _currentUser!.id == null) return;
+    
+    final unit = getLatestMeasurement('weight')?.unit ?? 'kg';
+    
+    final measurement = Measurement(
+      userId: _currentUser!.id!,
+      type: 'weight',
+      value: weight,
+      unit: unit,
+      measuredAt: takenAt,
+    );
+    
+    await addMeasurement(measurement);
+  }
+
   Future<void> addPhoto(ProgressPhoto photo) async {
     try {
       final newPhoto = await PhotoService.instance.addPhoto(photo);

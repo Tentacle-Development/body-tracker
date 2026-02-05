@@ -99,6 +99,11 @@ class _PhotoGalleryScreenState extends State<PhotoGalleryScreen>
 
       await appProvider.addPhoto(photo);
 
+      // Save weight as measurement if provided
+      if (weight != null) {
+        await appProvider.syncPhotoWeight(weight, photo.takenAt);
+      }
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Photo saved!')),

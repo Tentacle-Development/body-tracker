@@ -95,6 +95,10 @@ class _PhotoViewScreenState extends State<PhotoViewScreen> {
       final updatedPhoto = _currentPhoto.copyWith(weight: newWeight);
       await PhotoService.instance.updatePhoto(updatedPhoto);
       await appProvider.loadPhotos();
+      
+      // Also sync to measurements
+      await appProvider.syncPhotoWeight(newWeight, _currentPhoto.takenAt);
+      
       setState(() {
         _currentPhoto = updatedPhoto;
       });
