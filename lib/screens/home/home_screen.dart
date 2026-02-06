@@ -24,37 +24,6 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
 
-  Widget _buildNavItem(int index, IconData icon, IconData activeIcon, String label) {
-    final isSelected = _currentIndex == index;
-    final color = isSelected ? AppTheme.primaryColor : AppTheme.textSecondary;
-
-    return GestureDetector( // Using GestureDetector instead of InkWell for more control
-      onTap: () => setState(() => _currentIndex = index),
-      child: Container(
-        width: 85, // Slightly wider to avoid truncation
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        color: Colors.transparent, // Make entire area tappable
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(isSelected ? activeIcon : icon, color: color, size: 24),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.visible, // Don't truncate labels
-              style: TextStyle(
-                color: color,
-                fontSize: 11, // Slightly smaller font to fit
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<AppProvider>();
@@ -62,34 +31,58 @@ class _HomeScreenState extends State<HomeScreen> {
         ['dashboard', 'measure', 'photos', 'progress', 'sizes', 'profile'];
 
     final List<Widget> tabScreens = [];
-    final List<Widget> navItems = [];
+    final List<BottomNavigationBarItem> navItems = [];
 
     for (int i = 0; i < enabledTabs.length; i++) {
       final tabId = enabledTabs[i];
       switch (tabId) {
         case 'dashboard':
           tabScreens.add(const DashboardTab());
-          navItems.add(_buildNavItem(i, Icons.dashboard_outlined, Icons.dashboard, 'Dashboard'));
+          navItems.add(const BottomNavigationBarItem(
+            icon: Icon(Icons.dashboard_outlined),
+            activeIcon: Icon(Icons.dashboard),
+            label: 'Dashboard',
+          ));
           break;
         case 'measure':
           tabScreens.add(const MeasurementsTab());
-          navItems.add(_buildNavItem(i, Icons.straighten_outlined, Icons.straighten, 'Measure'));
+          navItems.add(const BottomNavigationBarItem(
+            icon: Icon(Icons.straighten_outlined),
+            activeIcon: Icon(Icons.straighten),
+            label: 'Measure',
+          ));
           break;
         case 'photos':
           tabScreens.add(const PhotoGalleryScreen());
-          navItems.add(_buildNavItem(i, Icons.photo_camera_outlined, Icons.photo_camera, 'Photos'));
+          navItems.add(const BottomNavigationBarItem(
+            icon: Icon(Icons.photo_camera_outlined),
+            activeIcon: Icon(Icons.photo_camera),
+            label: 'Photos',
+          ));
           break;
         case 'progress':
           tabScreens.add(const ProgressChartsTab());
-          navItems.add(_buildNavItem(i, Icons.show_chart_outlined, Icons.show_chart, 'Progress'));
+          navItems.add(const BottomNavigationBarItem(
+            icon: Icon(Icons.show_chart_outlined),
+            activeIcon: Icon(Icons.show_chart),
+            label: 'Progress',
+          ));
           break;
         case 'sizes':
           tabScreens.add(const ClothingSizeScreen());
-          navItems.add(_buildNavItem(i, Icons.checkroom_outlined, Icons.checkroom, 'Sizes'));
+          navItems.add(const BottomNavigationBarItem(
+            icon: Icon(Icons.checkroom_outlined),
+            activeIcon: Icon(Icons.checkroom),
+            label: 'Sizes',
+          ));
           break;
         case 'profile':
           tabScreens.add(const ProfileTab());
-          navItems.add(_buildNavItem(i, Icons.person_outline, Icons.person, 'Profile'));
+          navItems.add(const BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person),
+            label: 'Profile',
+          ));
           break;
       }
     }
@@ -102,16 +95,9 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
-        children: const [
-          DashboardTab(),
-          MeasurementsTab(),
-          PhotoGalleryScreen(),
-          ProgressChartsTab(),
-          ProfileTab(),
-        ],
+        children: tabScreens,
       ),
       bottomNavigationBar: Container(
-        height: 70,
         decoration: BoxDecoration(
           color: AppTheme.surfaceColor,
           boxShadow: [
@@ -126,33 +112,7 @@ class _HomeScreenState extends State<HomeScreen> {
           currentIndex: _currentIndex,
           onTap: (index) => setState(() => _currentIndex = index),
           type: BottomNavigationBarType.fixed,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.dashboard_outlined),
-              activeIcon: Icon(Icons.dashboard),
-              label: 'Dashboard',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.straighten_outlined),
-              activeIcon: Icon(Icons.straighten),
-              label: 'Measure',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.photo_camera_outlined),
-              activeIcon: Icon(Icons.photo_camera),
-              label: 'Photos',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.show_chart_outlined),
-              activeIcon: Icon(Icons.show_chart),
-              label: 'Progress',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              activeIcon: Icon(Icons.person),
-              label: 'Profile',
-            ),
-          ],
+          items: navItems,
         ),
       ),
     );
