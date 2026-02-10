@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_profile.dart';
 import '../models/measurement.dart';
+import '../models/measurement_guide.dart';
 import '../models/progress_photo.dart';
 import '../models/user_settings.dart';
 import '../models/goal.dart';
