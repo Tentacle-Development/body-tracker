@@ -37,8 +37,38 @@ class BackupService {
     
     // Export photos with metadata
     await _exportPhotos(userId, backupDir.path);
+
+    // Export goals
+    await _exportGoals(userId, backupDir.path);
     
     return backupDir.path;
+  }
+
+  Future<void> _exportGoals(int userId, String backupPath) async {
+    final db = await DatabaseService.instance.database;
+    final goals = await db.query('goals', where: 'user_id = ?', whereArgs: [userId]);
+
+    if (goals.isEmpty) return;
+
+    final csvLines = <String>[];
+    csvLines.add('id,user_id,type,start_value,target_value,start_date,target_date,is_completed,created_at');
+
+    for (final g in goals) {
+      csvLines.add([
+        g['id'],
+        g['user_id'],
+        escapeCsv(g['type'] as String),
+        g['start_value'],
+        g['target_value'],
+        g['start_date'],
+        g['target_date'],
+        g['is_completed'],
+        g['created_at'],
+      ].join(','));
+    }
+
+    final file = File(path.join(backupPath, 'goals.csv'));
+    await file.writeAsString(csvLines.join('\n'));
   }
 
   Future<void> _exportUserProfile(int userId, String backupPath) async {
@@ -53,8 +83,8 @@ class BackupService {
     for (final user in users) {
       csvLines.add([
         user['id'],
-        _escapeCsv(user['name'] as String),
-        _escapeCsv(user['gender'] as String),
+        escapeCsv(user['name'] as String),
+        escapeCsv(user['gender'] as String),
         user['date_of_birth'],
         user['created_at'],
         user['updated_at'],
@@ -81,9 +111,9 @@ class BackupService {
       csvLines.add([
         m['id'],
         m['user_id'],
-        _escapeCsv(m['type'] as String),
+        escapeCsv(m['type'] as String),
         m['value'],
-        _escapeCsv(m['unit'] as String),
+        escapeCsv(m['unit'] as String),
         m['measured_at'],
         m['created_at'],
       ].join(','));
@@ -97,18 +127,14 @@ class BackupService {
     final db = await DatabaseService.instance.database;
     final settings = await db.query('settings', where: 'user_id = ?', whereArgs: [userId]);
     
+    if (settings.isEmpty) return;
+    
+    final header = settings.first.keys.toList();
     final csvLines = <String>[];
-    csvLines.add('id,user_id,reminder_interval_days,preferred_unit_system,created_at,updated_at');
+    csvLines.add(header.join(','));
     
     for (final s in settings) {
-      csvLines.add([
-        s['id'],
-        s['user_id'],
-        s['reminder_interval_days'],
-        _escapeCsv(s['preferred_unit_system'] as String? ?? 'metric'),
-        s['created_at'],
-        s['updated_at'],
-      ].join(','));
+      csvLines.add(header.map((key) => escapeCsv(s[key]?.toString() ?? '')).join(','));
     }
     
     final file = File(path.join(backupPath, 'settings.csv'));
@@ -164,8 +190,8 @@ class BackupService {
       csvLines.add([
         photo.id,
         newFilename,
-        _escapeCsv(category),
-        _escapeCsv(photo.notes ?? ''),
+        escapeCsv(category),
+        escapeCsv(photo.notes ?? ''),
         photo.weight ?? '',
         photo.takenAt.toIso8601String(),
         photo.createdAt.toIso8601String(),
@@ -177,18 +203,81 @@ class BackupService {
   }
 
   /// Import/restore from a backup directory
-  Future<void> restoreBackup(String backupPath, int userId) async {
-    // Import user profile (update existing)
-    await _importUserProfile(backupPath, userId);
+  Future<void> restoreBackup(String backupPath, int? userId) async {
+    int targetUserId;
+    
+    if (userId == null) {
+      // Onboarding restore: we need to recreate the user first
+      targetUserId = await _restoreUserFromBackup(backupPath);
+    } else {
+      targetUserId = userId;
+      // Update existing user profile
+      await _importUserProfile(backupPath, targetUserId);
+    }
     
     // Import measurements
-    await _importMeasurements(backupPath, userId);
+    await _importMeasurements(backupPath, targetUserId);
     
     // Import settings
-    await _importSettings(backupPath, userId);
+    await _importSettings(backupPath, targetUserId);
     
     // Import photos
-    await _importPhotos(backupPath, userId);
+    await _importPhotos(backupPath, targetUserId);
+
+    // Import goals
+    await _importGoals(backupPath, targetUserId);
+  }
+
+  Future<void> _importGoals(String backupPath, int userId) async {
+    final file = File(path.join(backupPath, 'goals.csv'));
+    if (!await file.exists()) return;
+
+    final lines = await file.readAsLines();
+    if (lines.length < 2) return;
+
+    final db = await DatabaseService.instance.database;
+    await db.delete('goals', where: 'user_id = ?', whereArgs: [userId]);
+
+    for (int i = 1; i < lines.length; i++) {
+      if (lines[i].trim().isEmpty) continue;
+      final values = parseCsvLine(lines[i]);
+      if (values.length < 9) continue;
+
+      await db.insert('goals', {
+        'user_id': userId,
+        'type': values[2],
+        'start_value': double.tryParse(values[3]) ?? 0.0,
+        'target_value': double.tryParse(values[4]) ?? 0.0,
+        'start_date': values[5],
+        'target_date': values[6],
+        'is_completed': int.tryParse(values[7]) ?? 0,
+        'created_at': values[8],
+      });
+    }
+  }
+
+  Future<int> _restoreUserFromBackup(String backupPath) async {
+    final file = File(path.join(backupPath, 'user_profile.csv'));
+    if (!await file.exists()) throw Exception('Backup profile not found');
+    
+    final lines = await file.readAsLines();
+    if (lines.length < 2) throw Exception('Backup profile empty');
+    
+    final values = parseCsvLine(lines[1]);
+    if (values.length < 6) throw Exception('Invalid backup profile');
+    
+    final db = await DatabaseService.instance.database;
+    
+    // Create the user
+    final id = await db.insert('users', {
+      'name': values[1],
+      'gender': values[2],
+      'date_of_birth': values[3],
+      'created_at': values[4],
+      'updated_at': values[5],
+    });
+    
+    return id;
   }
 
   Future<void> _importUserProfile(String backupPath, int userId) async {
@@ -198,7 +287,7 @@ class BackupService {
     final lines = await file.readAsLines();
     if (lines.length < 2) return;
     
-    final values = _parseCsvLine(lines[1]);
+    final values = parseCsvLine(lines[1]);
     if (values.length < 6) return;
     
     final db = await DatabaseService.instance.database;
@@ -228,7 +317,7 @@ class BackupService {
     await db.delete('measurements', where: 'user_id = ?', whereArgs: [userId]);
     
     for (int i = 1; i < lines.length; i++) {
-      final values = _parseCsvLine(lines[i]);
+      final values = parseCsvLine(lines[i]);
       if (values.length < 7) continue;
       
       await db.insert('measurements', {
@@ -249,33 +338,45 @@ class BackupService {
     final lines = await file.readAsLines();
     if (lines.length < 2) return;
     
-    final values = _parseCsvLine(lines[1]);
-    if (values.length < 6) return;
+    final header = parseCsvLine(lines[0]);
+    final values = parseCsvLine(lines[1]);
     
     final db = await DatabaseService.instance.database;
     
-    // Update or insert settings
+    // Map headers to values
+    final Map<String, dynamic> settingsData = {};
+    for (int i = 0; i < header.length; i++) {
+      if (i < values.length) {
+        settingsData[header[i]] = values[i];
+      }
+    }
+
+    // Prepare map for DB
+    final Map<String, dynamic> dbMap = {
+      'user_id': userId,
+      'updated_at': DateTime.now().toIso8601String(),
+    };
+
+    if (settingsData.containsKey('reminder_interval_days')) {
+      dbMap['reminder_interval_days'] = int.tryParse(settingsData['reminder_interval_days'].toString()) ?? 30;
+    }
+    if (settingsData.containsKey('preferred_unit_system')) {
+      dbMap['preferred_unit_system'] = settingsData['preferred_unit_system'];
+    }
+    if (settingsData.containsKey('enabled_tabs')) {
+      dbMap['enabled_tabs'] = settingsData['enabled_tabs'];
+    }
+    if (settingsData.containsKey('is_google_drive_sync_enabled')) {
+      dbMap['is_google_drive_sync_enabled'] = (settingsData['is_google_drive_sync_enabled'].toString() == '1') ? 1 : 0;
+    }
+
     final existing = await db.query('settings', where: 'user_id = ?', whereArgs: [userId]);
     
     if (existing.isEmpty) {
-      await db.insert('settings', {
-        'user_id': userId,
-        'reminder_interval_days': int.tryParse(values[2]) ?? 30,
-        'preferred_unit_system': values[3],
-        'created_at': DateTime.now().toIso8601String(),
-        'updated_at': DateTime.now().toIso8601String(),
-      });
+      dbMap['created_at'] = settingsData['created_at'] ?? DateTime.now().toIso8601String();
+      await db.insert('settings', dbMap);
     } else {
-      await db.update(
-        'settings',
-        {
-          'reminder_interval_days': int.tryParse(values[2]) ?? 30,
-          'preferred_unit_system': values[3],
-          'updated_at': DateTime.now().toIso8601String(),
-        },
-        where: 'user_id = ?',
-        whereArgs: [userId],
-      );
+      await db.update('settings', dbMap, where: 'user_id = ?', whereArgs: [userId]);
     }
   }
 
@@ -301,7 +402,7 @@ class BackupService {
     for (int i = 1; i < lines.length; i++) {
       if (lines[i].trim().isEmpty) continue;
       
-      final values = _parseCsvLine(lines[i]);
+      final values = parseCsvLine(lines[i]);
       if (values.length < 6) {
         debugPrint('Backup: Skipping photo line $i due to insufficient columns');
         continue;
@@ -370,14 +471,16 @@ class BackupService {
     debugPrint('Backup: Imported $importedCount photos');
   }
 
-  String _escapeCsv(String value) {
+  @visibleForTesting
+  String escapeCsv(String value) {
     if (value.contains(',') || value.contains('"') || value.contains('\n')) {
       return '"${value.replaceAll('"', '""')}"';
     }
     return value;
   }
 
-  List<String> _parseCsvLine(String line) {
+  @visibleForTesting
+  List<String> parseCsvLine(String line) {
     final result = <String>[];
     bool inQuotes = false;
     StringBuffer current = StringBuffer();

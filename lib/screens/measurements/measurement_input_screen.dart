@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../models/measurement.dart';
 import '../../models/measurement_guide.dart';
@@ -25,6 +26,7 @@ class _MeasurementInputScreenState extends State<MeasurementInputScreen>
   final TextEditingController _valueController = TextEditingController();
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
+  DateTime _selectedDate = DateTime.now();
   bool _isSaving = false;
 
   @override
@@ -45,6 +47,33 @@ class _MeasurementInputScreenState extends State<MeasurementInputScreen>
     _valueController.dispose();
     _animationController.dispose();
     super.dispose();
+  }
+
+  Future<void> _selectDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.dark(
+              primary: widget.guide.color,
+              onPrimary: Colors.white,
+              surface: AppTheme.cardColor,
+              onSurface: Colors.white,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+      });
+    }
   }
 
   Future<void> _saveMeasurement() async {
@@ -84,6 +113,7 @@ class _MeasurementInputScreenState extends State<MeasurementInputScreen>
         type: widget.guide.type,
         value: value,
         unit: widget.guide.unit,
+        measuredAt: _selectedDate,
       );
 
       await provider.addMeasurement(measurement);
@@ -269,6 +299,33 @@ class _MeasurementInputScreenState extends State<MeasurementInputScreen>
                       ),
                     ),
                   ],
+                ),
+
+                const SizedBox(height: 24),
+                
+                // Date Picker
+                GestureDetector(
+                  onTap: _selectDate,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: AppTheme.cardColor,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: widget.guide.color.withValues(alpha: 0.1)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.calendar_today, color: widget.guide.color, size: 20),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Date: ${DateFormat('MMMM d, y').format(_selectedDate)}',
+                          style: const TextStyle(color: AppTheme.textPrimary),
+                        ),
+                        const Spacer(),
+                        Icon(Icons.edit, color: Colors.grey[600], size: 16),
+                      ],
+                    ),
+                  ),
                 ),
 
                 // Range hint
