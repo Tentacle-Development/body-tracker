@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:googleapis_auth/googleapis_auth.dart' as auth;
@@ -22,10 +23,32 @@ class GoogleDriveService {
 
   Future<GoogleSignInAccount?> signIn() async {
     try {
-      _currentUser = await _googleSignIn.signIn();
+      debugPrint('Google Drive: Starting sign-in process...');
+      final result = await _googleSignIn.signIn();
+      if (result == null) {
+        debugPrint('Google Sign-In: Result is null (user cancelled or configuration error)');
+      } else {
+        debugPrint('Google Sign-In: Success for ${result.email}');
+      }
+      _currentUser = result;
       return _currentUser;
+    } on PlatformException catch (e) {
+      debugPrint('Google Sign-In failed with PlatformException:');
+      debugPrint('  Code: ${e.code}');
+      debugPrint('  Message: ${e.message}');
+      debugPrint('  Details: ${e.details}');
+      
+      String friendlyMessage = 'Google login failed.';
+      if (e.code == 'sign_in_failed') {
+        friendlyMessage = 'Google sign in failed. Please ensure the app is registered in Google Cloud Console.';
+      } else if (e.code == 'network_error') {
+        friendlyMessage = 'Network error during Google sign in.';
+      }
+      
+      // We could throw or handle here, but we return null to signify failure
+      return null;
     } catch (e) {
-      debugPrint('Google Sign-In failed: $e');
+      debugPrint('Google Sign-In failed with unexpected error: $e');
       return null;
     }
   }
@@ -55,9 +78,9 @@ class GoogleDriveService {
     return authenticateClient;
   }
 
-  Future<bool> uploadBackup(String filePath) async {
+  Future<({bool success, String? error})> uploadBackup(String filePath) async {
     final client = await _getAuthClient();
-    if (client == null) return false;
+    if (client == null) return (success: false, error: 'Failed to create authenticated client');
 
     try {
       final driveApi = drive.DriveApi(client);
@@ -71,6 +94,7 @@ class GoogleDriveService {
       final media = drive.Media(file.openRead(), file.lengthSync());
       
       // Check if file already exists to update it or create new
+      debugPrint('Google Drive: Checking for existing backup in appDataFolder...');
       final fileList = await driveApi.files.list(
         q: "name = '${driveFile.name}' and 'appDataFolder' in parents",
         spaces: 'appDataFolder',
@@ -79,17 +103,23 @@ class GoogleDriveService {
       if (fileList.files != null && fileList.files!.isNotEmpty) {
         // Update existing
         final existingId = fileList.files!.first.id!;
-        await driveApi.files.update(drive.File(), existingId, uploadMedia: media);
+        debugPrint('Google Drive: Updating existing file $existingId');
+        await driveApi.files.update(
+          drive.File(name: driveFile.name), 
+          existingId, 
+          uploadMedia: media,
+        );
         debugPrint('Updated existing backup on Google Drive');
       } else {
         // Create new
+        debugPrint('Google Drive: Creating new file in appDataFolder');
         await driveApi.files.create(driveFile, uploadMedia: media);
         debugPrint('Created new backup on Google Drive');
       }
-      return true;
+      return (success: true, error: null);
     } catch (e) {
       debugPrint('Error uploading to Google Drive: $e');
-      return false;
+      return (success: false, error: e.toString());
     } finally {
       client.close();
     }
