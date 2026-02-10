@@ -31,7 +31,7 @@ class AppProvider extends ChangeNotifier {
   List<ProgressPhoto> get photos => _photos;
   List<Goal> get goals => _goals;
   List<MeasurementGuide> get customGuides => _customGuides;
-  List<MeasurementGuide> get allGuides => [...MeasurementGuide.guides, ..._customGuides];
+  List<MeasurementGuide> get allGuides => <MeasurementGuide>[...MeasurementGuide.guides, ..._customGuides];
   List<String> get dashboardCategories => _dashboardCategories;
   String get activeTabId => _activeTabId;
   bool get isLoading => _isLoading;
