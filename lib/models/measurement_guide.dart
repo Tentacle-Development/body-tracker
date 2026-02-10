@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 class MeasurementGuide {
+  final int? id;
   final String type;
   final String title;
   final String description;
@@ -10,8 +11,10 @@ class MeasurementGuide {
   final String unit;
   final double minValue;
   final double maxValue;
+  final bool isCustom;
 
   const MeasurementGuide({
+    this.id,
     required this.type,
     required this.title,
     required this.description,
@@ -19,9 +22,42 @@ class MeasurementGuide {
     required this.icon,
     required this.color,
     required this.unit,
-    required this.minValue,
-    required this.maxValue,
+    this.minValue = 0,
+    this.maxValue = 9999,
+    this.isCustom = false,
   });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'type': type,
+      'title': title,
+      'description': description,
+      'instruction': instruction,
+      'icon_code_point': icon.codePoint,
+      'color_value': color.value,
+      'unit': unit,
+      'min_value': minValue,
+      'max_value': maxValue,
+      'is_custom': isCustom ? 1 : 0,
+    };
+  }
+
+  factory MeasurementGuide.fromMap(Map<String, dynamic> map) {
+    return MeasurementGuide(
+      id: map['id'] as int?,
+      type: map['type'] as String,
+      title: map['title'] as String,
+      description: map['description'] as String? ?? '',
+      instruction: map['instruction'] as String? ?? '',
+      icon: IconData(map['icon_code_point'] as int, fontFamily: 'MaterialIcons'),
+      color: Color(map['color_value'] as int),
+      unit: map['unit'] as String,
+      minValue: (map['min_value'] as num?)?.toDouble() ?? 0,
+      maxValue: (map['max_value'] as num?)?.toDouble() ?? 9999,
+      isCustom: (map['is_custom'] as int? ?? 0) == 1,
+    );
+  }
 
   static const List<MeasurementGuide> guides = [
     MeasurementGuide(
