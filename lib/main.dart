@@ -10,11 +10,7 @@ void main() async {
   await NotificationService.instance.initialize();
   runApp(
     ChangeNotifierProvider(
-      create: (_) {
-        final provider = AppProvider();
-        provider.initialize();
-        return provider;
-      },
+      create: (_) => AppProvider()..initialize(),
       child: const MyApp(),
     ),
   );
