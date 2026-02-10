@@ -211,6 +211,13 @@ class AppProvider extends ChangeNotifier {
       );
       _settings = settingsToSave;
       
+      // Ensure active tab is valid
+      if (_settings != null && _settings!.enabledTabs.isNotEmpty) {
+        if (!_settings!.enabledTabs.contains(_activeTabId)) {
+          _activeTabId = _settings!.enabledTabs.first;
+        }
+      }
+      
       // Resync notifications
       await _syncReminders();
       notifyListeners();
