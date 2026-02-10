@@ -47,19 +47,30 @@ class _ProgressChartsTabState extends State<ProgressChartsTab> {
             _buildRangeSelector(),
             const SizedBox(height: 24),
             
-            // Main Chart
+            // Main Chart & Stats
             Expanded(
               child: Consumer<AppProvider>(
                 builder: (context, provider, child) {
                   final allHistory = provider.getMeasurementsByType(_selectedType);
                   final filteredHistory = _filterHistoryByRange(allHistory, _selectedRange);
                   final guide = MeasurementGuide.guides.firstWhere((g) => g.type == _selectedType);
+                  final goals = provider.goals.where((g) => g.type == _selectedType && !g.isCompleted).toList();
+                  final activeGoal = goals.isNotEmpty ? goals.first : null;
                   
                   if (filteredHistory.length < 2) {
                     return _buildEmptyState();
                   }
 
-                  return _buildMainChart(filteredHistory, guide);
+                  return SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        _buildMainChart(filteredHistory, guide, activeGoal),
+                        const SizedBox(height: 24),
+                        _buildStatsSummary(filteredHistory, guide, activeGoal),
+                        const SizedBox(height: 32),
+                      ],
+                    ),
+                  );
                 },
               ),
             ),
@@ -159,7 +170,7 @@ class _ProgressChartsTabState extends State<ProgressChartsTab> {
     );
   }
 
-  Widget _buildMainChart(List<Measurement> history, MeasurementGuide guide) {
+  Widget _buildMainChart(List<Measurement> history, MeasurementGuide guide, Goal? goal) {
     // Sort ascending for chart
     final chartData = List<Measurement>.from(history)
       ..sort((a, b) => a.measuredAt.compareTo(b.measuredAt));
@@ -181,7 +192,8 @@ class _ProgressChartsTabState extends State<ProgressChartsTab> {
     }).toList();
 
     return Container(
-      padding: const EdgeInsets.all(24),
+      height: 350,
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppTheme.cardColor,
         borderRadius: BorderRadius.circular(24),
@@ -193,7 +205,7 @@ class _ProgressChartsTabState extends State<ProgressChartsTab> {
             children: [
               Text(
                 '${guide.title} Progress',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
@@ -312,18 +324,125 @@ class _ProgressChartsTabState extends State<ProgressChartsTab> {
                   LineChartBarData(
                     spots: spots,
                     isCurved: true,
+                    curveSmoothness: 0.35,
                     color: guide.color,
                     barWidth: 4,
-                    dotData: const FlDotData(show: true),
+                    isStrokeCapRound: true,
+                    dotData: FlDotData(
+                      show: true,
+                      getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
+                        radius: 4,
+                        color: guide.color,
+                        strokeWidth: 2,
+                        strokeColor: AppTheme.cardColor,
+                      ),
+                    ),
                     belowBarData: BarAreaData(
                       show: true,
-                      color: guide.color.withValues(alpha: 0.1),
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          guide.color.withValues(alpha: 0.3),
+                          guide.color.withValues(alpha: 0.0),
+                        ],
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatsSummary(List<Measurement> history, MeasurementGuide guide, Goal? goal) {
+    final values = history.map((m) => m.value).toList();
+    final current = values.first; // Latest because sorted DESC in provider
+    final first = values.last; // Oldest
+    final diff = current - first;
+    final avg = values.reduce((a, b) => a + b) / values.length;
+    final min = values.reduce((a, b) => a < b ? a : b);
+    final max = values.reduce((a, b) => a > b ? a : b);
+
+    // Progress percentage if goal exists
+    double? progress;
+    if (goal != null) {
+      final totalToGoal = (goal.targetValue - goal.startValue).abs();
+      final currentProgress = (current - goal.startValue).abs();
+      if (totalToGoal > 0) {
+        progress = (currentProgress / totalToGoal).clamp(0.0, 1.0);
+      }
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppTheme.cardColor,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Statistics',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              _buildStatItem('Total Change', '${diff > 0 ? "+" : ""}${diff.toStringAsFixed(1)} ${guide.unit}', 
+                diff == 0 ? Colors.white : (diff < 0 ? Colors.greenAccent : Colors.orangeAccent)),
+              _buildStatItem('Average', '${avg.toStringAsFixed(1)} ${guide.unit}', AppTheme.textPrimary),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              _buildStatItem('Minimum', '${min.toStringAsFixed(1)} ${guide.unit}', AppTheme.textSecondary),
+              _buildStatItem('Maximum', '${max.toStringAsFixed(1)} ${guide.unit}', AppTheme.textSecondary),
+            ],
+          ),
+          if (progress != null) ...[
+            const SizedBox(height: 24),
+            const Text(
+              'Goal Progress',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            ),
+            const SizedBox(height: 12),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 10,
+                backgroundColor: Colors.white.withValues(alpha: 0.05),
+                valueColor: AlwaysStoppedAnimation<Color>(guide.color),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('${(progress * 100).toInt()}% towards goal', style: TextStyle(color: guide.color, fontSize: 12, fontWeight: FontWeight.bold)),
+                Text('${goal?.targetValue} ${guide.unit}', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatItem(String label, String value, Color valueColor) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+          const SizedBox(height: 4),
+          Text(value, style: TextStyle(color: valueColor, fontWeight: FontWeight.bold, fontSize: 16)),
         ],
       ),
     );
