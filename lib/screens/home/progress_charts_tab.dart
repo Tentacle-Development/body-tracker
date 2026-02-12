@@ -478,7 +478,7 @@ class _ProgressChartsTabState extends State<ProgressChartsTab> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('${(progress * 100).toInt()}% towards goal', style: TextStyle(color: guide.color, fontSize: 12, fontWeight: FontWeight.bold)),
-                Text('${goal.targetValue} ${guide.unit}', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+                Text('${goal?.targetValue} ${guide.unit}', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
               ],
             ),
           ],
