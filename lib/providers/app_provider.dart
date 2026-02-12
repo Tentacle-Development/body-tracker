@@ -18,6 +18,7 @@ class AppProvider extends ChangeNotifier {
   List<ProgressPhoto> _photos = [];
   List<Goal> _goals = [];
   List<String> _dashboardCategories = ['bmi', 'whr', 'weight', 'height'];
+  String _activeTabId = 'dashboard';
   bool _isLoading = true;
   bool _isFirstLaunch = true;
 
@@ -28,8 +29,14 @@ class AppProvider extends ChangeNotifier {
   List<ProgressPhoto> get photos => _photos;
   List<Goal> get goals => _goals;
   List<String> get dashboardCategories => _dashboardCategories;
+  String get activeTabId => _activeTabId;
   bool get isLoading => _isLoading;
   bool get isFirstLaunch => _isFirstLaunch;
+
+  void setActiveTab(String tabId) {
+    _activeTabId = tabId;
+    notifyListeners();
+  }
 
   Future<void> initialize() async {
     _isLoading = true;
@@ -194,13 +201,15 @@ class AppProvider extends ChangeNotifier {
   Future<void> updateSettings(UserSettings newSettings) async {
     try {
       final db = await DatabaseService.instance.database;
+      final settingsToSave = newSettings.copyWith(updatedAt: DateTime.now());
+      
       await db.update(
         'settings',
-        newSettings.toMap(),
+        settingsToSave.toMap(),
         where: 'user_id = ?',
-        whereArgs: [newSettings.userId],
+        whereArgs: [settingsToSave.userId],
       );
-      _settings = newSettings;
+      _settings = settingsToSave;
       
       // Resync notifications
       await _syncReminders();
@@ -318,6 +327,40 @@ class AppProvider extends ChangeNotifier {
     );
     
     await addMeasurement(measurement);
+  }
+
+  Future<void> updateMeasurement(Measurement measurement) async {
+    try {
+      final db = await DatabaseService.instance.database;
+      await db.update(
+        'measurements',
+        measurement.toMap(),
+        where: 'id = ?',
+        whereArgs: [measurement.id],
+      );
+      final index = _measurements.indexWhere((m) => m.id == measurement.id);
+      if (index != -1) {
+        _measurements[index] = measurement;
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error updating measurement: $e');
+    }
+  }
+
+  Future<void> deleteMeasurement(int id) async {
+    try {
+      final db = await DatabaseService.instance.database;
+      await db.delete(
+        'measurements',
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+      _measurements.removeWhere((m) => m.id == id);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error deleting measurement: $e');
+    }
   }
 
   Future<void> addPhoto(ProgressPhoto photo) async {

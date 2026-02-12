@@ -49,10 +49,12 @@ class GoalsScreen extends StatelessWidget {
               final latest = provider.getLatestMeasurement(goal.type)?.value ?? goal.startValue;
               
               double progress = 0;
-              final totalDiff = (goal.targetValue - goal.startValue).abs();
-              final currentDiff = (latest - goal.startValue).abs();
-              if (totalDiff > 0) {
-                progress = (currentDiff / totalDiff).clamp(0.0, 1.0);
+              if (goal.targetValue > goal.startValue) {
+                // Gaining weight/size
+                progress = ((latest - goal.startValue) / (goal.targetValue - goal.startValue)).clamp(0.0, 1.0);
+              } else if (goal.targetValue < goal.startValue) {
+                // Losing weight/size
+                progress = ((goal.startValue - latest) / (goal.startValue - goal.targetValue)).clamp(0.0, 1.0);
               }
 
               return GestureDetector(
