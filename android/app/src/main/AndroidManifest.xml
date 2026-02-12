@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Internet permission for cloud backup -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <!-- Camera and storage permissions for progress photos -->
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>

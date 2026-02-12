@@ -2,10 +2,19 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter/foundation.dart';
+import 'package:meta/meta.dart';
 
 class NotificationService {
-  static final NotificationService instance = NotificationService._init();
+  static NotificationService _instance = NotificationService._init();
+  static NotificationService get instance => _instance;
+
+  @visibleForTesting
+  static set instance(NotificationService newInstance) => _instance = newInstance;
+
   NotificationService._init();
+
+  @visibleForTesting
+  NotificationService();
 
   final FlutterLocalNotificationsPlugin _notifications = FlutterLocalNotificationsPlugin();
 

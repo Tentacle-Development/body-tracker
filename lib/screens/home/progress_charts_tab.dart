@@ -55,12 +55,14 @@ class _ProgressChartsTabState extends State<ProgressChartsTab> {
                   final allHistory = provider.getMeasurementsByType(_selectedType);
                   final filteredHistory = _filterHistoryByRange(allHistory, _selectedRange);
                   final guide = MeasurementGuide.guides.firstWhere((g) => g.type == _selectedType);
-                  final goals = provider.goals.where((g) => g.type == _selectedType && !g.isCompleted).toList();
-                  final activeGoal = goals.isNotEmpty ? goals.first : null;
                   
                   if (filteredHistory.isEmpty) {
                     return _buildEmptyState(guide);
                   }
+
+                  // Find active goal
+                  final goals = provider.goals.where((g) => g.type == _selectedType && !g.isCompleted).toList();
+                  final activeGoal = goals.isNotEmpty ? goals.first : null;
 
                   return SingleChildScrollView(
                     child: Column(
@@ -190,6 +192,14 @@ class _ProgressChartsTabState extends State<ProgressChartsTab> {
     final chartData = List<Measurement>.from(history)
       ..sort((a, b) => a.measuredAt.compareTo(b.measuredAt));
 
+    final firstTimestamp = chartData.first.measuredAt.millisecondsSinceEpoch;
+    final dayMillis = 1000 * 60 * 60 * 24;
+
+    final spots = chartData.map((m) {
+      final x = (m.measuredAt.millisecondsSinceEpoch - firstTimestamp).toDouble() / dayMillis;
+      return FlSpot(x, m.value);
+    }).toList();
+
     return Container(
       height: 350,
       padding: const EdgeInsets.all(20),
@@ -246,18 +256,32 @@ class _ProgressChartsTabState extends State<ProgressChartsTab> {
             child: LineChart(
               LineChartData(
                 minX: 0,
-                maxX: (chartData.length - 1).toDouble(),
+                maxX: spots.last.x,
                 clipData: const FlClipData.all(),
                 lineTouchData: LineTouchData(
                   touchTooltipData: LineTouchTooltipData(
                     getTooltipColor: (spot) => AppTheme.cardColor.withValues(alpha: 0.9),
                     tooltipRoundedRadius: 8,
-                    getTooltipItems: (touchedSpots) {
-                      return touchedSpots.map((spot) {
-                        final date = chartData[spot.x.toInt()].measuredAt;
+                    getTooltipItems: (List<LineBarSpot> touchedSpots) {
+                      return touchedSpots.map((barSpot) {
+                        final date = DateTime.fromMillisecondsSinceEpoch(
+                          (barSpot.x * dayMillis).toInt() + firstTimestamp,
+                        );
                         return LineTooltipItem(
-                          '${spot.y} ${guide.unit}\n${DateFormat('MMM d, y').format(date)}',
-                          TextStyle(color: guide.color, fontWeight: FontWeight.bold, fontSize: 12),
+                          '${DateFormat('MMM d').format(date)}\n',
+                          const TextStyle(
+                            color: AppTheme.textPrimary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          children: [
+                            TextSpan(
+                              text: '${barSpot.y} ${guide.unit}',
+                              style: TextStyle(
+                                color: guide.color,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         );
                       }).toList();
                     },
@@ -274,25 +298,34 @@ class _ProgressChartsTabState extends State<ProgressChartsTab> {
                 titlesData: FlTitlesData(
                   rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                   topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 40,
+                      getTitlesWidget: (value, meta) {
+                        return Text(
+                          value.toStringAsFixed(1),
+                          style: const TextStyle(fontSize: 10, color: AppTheme.textSecondary),
+                        );
+                      },
+                    ),
+                  ),
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
                       reservedSize: 30,
+                      interval: _getInterval(spots.last.x),
                       getTitlesWidget: (value, meta) {
-                        if (value.toInt() >= 0 && value.toInt() < chartData.length) {
-                          if (value.toInt() == 0 || 
-                              value.toInt() == chartData.length - 1 || 
-                              (chartData.length > 5 && value.toInt() == chartData.length ~/ 2)) {
-                            return Padding(
-                              padding: const EdgeInsets.only(top: 8.0),
-                              child: Text(
-                                DateFormat('MMM d').format(chartData[value.toInt()].measuredAt),
-                                style: const TextStyle(fontSize: 10, color: AppTheme.textSecondary),
-                              ),
-                            );
-                          }
-                        }
-                        return const SizedBox();
+                        final date = DateTime.fromMillisecondsSinceEpoch(
+                          (value * dayMillis).toInt() + firstTimestamp,
+                        );
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: Text(
+                            DateFormat('MMM d').format(date),
+                            style: const TextStyle(fontSize: 10, color: AppTheme.textSecondary),
+                          ),
+                        );
                       },
                     ),
                   ),
@@ -318,9 +351,7 @@ class _ProgressChartsTabState extends State<ProgressChartsTab> {
                 ),
                 lineBarsData: [
                   LineChartBarData(
-                    spots: chartData.asMap().entries.map((e) {
-                      return FlSpot(e.key.toDouble(), e.value.value);
-                    }).toList(),
+                    spots: spots,
                     isCurved: true,
                     curveSmoothness: 0.35,
                     gradient: LinearGradient(
@@ -447,7 +478,7 @@ class _ProgressChartsTabState extends State<ProgressChartsTab> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('${(progress * 100).toInt()}% towards goal', style: TextStyle(color: guide.color, fontSize: 12, fontWeight: FontWeight.bold)),
-                Text('${goal?.targetValue} ${guide.unit}', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+                Text('${goal.targetValue} ${guide.unit}', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
               ],
             ),
           ],
@@ -570,5 +601,13 @@ class _ProgressChartsTabState extends State<ProgressChartsTab> {
         ],
       ),
     );
+  }
+
+  double _getInterval(double maxX) {
+    if (maxX <= 7) return 1;
+    if (maxX <= 31) return 7;
+    if (maxX <= 90) return 30;
+    if (maxX <= 365) return 60;
+    return 90;
   }
 }

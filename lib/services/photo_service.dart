@@ -1,3 +1,4 @@
+import 'package:meta/meta.dart';
 import 'dart:io';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
@@ -5,8 +6,16 @@ import '../models/progress_photo.dart';
 import 'database_service.dart';
 
 class PhotoService {
-  static final PhotoService instance = PhotoService._init();
+  static PhotoService _instance = PhotoService._init();
+  static PhotoService get instance => _instance;
+
+  @visibleForTesting
+  static set instance(PhotoService newInstance) => _instance = newInstance;
+
   PhotoService._init();
+
+  @visibleForTesting
+  PhotoService();
 
   /// Get the app's photo storage directory
   Future<Directory> get _photoDirectory async {
