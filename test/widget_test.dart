@@ -4,12 +4,12 @@ import 'package:provider/provider.dart';
 import 'package:body_tracker/main.dart';
 import 'package:body_tracker/providers/app_provider.dart';
 import 'package:mockito/mockito.dart';
-import 'mocks.mocks.dart';
 import 'package:body_tracker/services/database_service.dart';
 import 'package:body_tracker/services/goal_service.dart';
 import 'package:body_tracker/services/photo_service.dart';
 import 'package:body_tracker/services/notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'mocks.mocks.dart';
 
 void main() {
   testWidgets('App splash screen shows title', (WidgetTester tester) async {
@@ -20,11 +20,13 @@ void main() {
     final mockPhotoService = MockPhotoService();
     final mockNotificationService = MockNotificationService();
 
+    // Inject mocks
     DatabaseService.instance = mockDatabaseService;
     GoalService.instance = mockGoalService;
     PhotoService.instance = mockPhotoService;
     NotificationService.instance = mockNotificationService;
 
+    // Stubbing
     when(mockDatabaseService.database).thenAnswer((_) async => mockDatabase);
     when(mockDatabase.query(any,
             where: anyNamed('where'),

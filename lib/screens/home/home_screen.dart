@@ -187,6 +187,7 @@ class DashboardTab extends StatelessWidget {
                       crossAxisCount: 2,
                       crossAxisSpacing: 16,
                       mainAxisSpacing: 16,
+                      childAspectRatio: 0.85,
                     ),
                     itemCount: provider.dashboardCategories.length,
                     itemBuilder: (context, index) {
@@ -219,7 +220,7 @@ class DashboardTab extends StatelessWidget {
                           Icons.accessibility_new,
                           AppTheme.secondaryColor,
                           onTap: () {
-                            final waistGuide = MeasurementGuide.guides.firstWhere((g) => g.type == 'waist');
+                            final waistGuide = provider.allGuides.firstWhere((g) => g.type == 'waist');
                             Navigator.of(context).push(
                               MaterialPageRoute(
                                 builder: (_) => MeasurementDetailScreen(
@@ -230,7 +231,10 @@ class DashboardTab extends StatelessWidget {
                           },
                         );
                       } else {
-                        final guide = MeasurementGuide.guides.firstWhere((g) => g.type == cat);
+                        final guide = provider.allGuides.firstWhere(
+                          (g) => g.type == cat,
+                          orElse: () => MeasurementGuide.guides.first, // Fallback to avoid crash
+                        );
                         final latest = provider.getLatestMeasurement(cat);
 
                         return _buildStatCard(
@@ -286,9 +290,10 @@ class DashboardTab extends StatelessWidget {
           ],
         ),
         child: Padding(
-          padding: const EdgeInsets.all(20.0),
+          padding: const EdgeInsets.all(12.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
                 padding: const EdgeInsets.all(8),
@@ -298,29 +303,42 @@ class DashboardTab extends StatelessWidget {
                 ),
                 child: Icon(icon, color: color, size: 24),
               ),
-              const Spacer(),
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: AppTheme.textSecondary,
-                ),
-              ),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: color,
-                ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      value,
+                      style: const TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: color,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -351,6 +369,8 @@ class DashboardTab extends StatelessWidget {
   }
 }
 
+import '../settings/custom_category_screen.dart';
+
 class MeasurementsTab extends StatelessWidget {
   const MeasurementsTab({super.key});
 
@@ -362,13 +382,26 @@ class MeasurementsTab extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Measurements',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.textPrimary,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Measurements',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.add_circle_outline, color: AppTheme.primaryColor),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const CustomCategoryScreen()),
+                    );
+                  },
+                ),
+              ],
             ),
             const SizedBox(height: 24),
             GestureDetector(
@@ -398,21 +431,50 @@ class MeasurementsTab extends StatelessWidget {
                 builder: (context, provider, child) {
                   return GridView.builder(
                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 12, mainAxisSpacing: 12),
-                    itemCount: MeasurementGuide.guides.length,
+                    itemCount: provider.allGuides.length,
                     itemBuilder: (context, index) {
-                      final guide = MeasurementGuide.guides[index];
+                      final guide = provider.allGuides[index];
                       return GestureDetector(
                         onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => MeasurementDetailScreen(guide: guide))),
-                        child: Container(
-                          decoration: BoxDecoration(color: AppTheme.cardColor, borderRadius: BorderRadius.circular(16)),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(guide.icon, color: guide.color, size: 24),
-                              const SizedBox(height: 8),
-                              Text(guide.title, style: const TextStyle(fontSize: 12)),
-                            ],
-                          ),
+                        onLongPress: guide.isCustom ? () => _showDeleteDialog(context, provider, guide) : null,
+                        child: Stack(
+                          children: [
+                            Container(
+                              width: double.infinity,
+                              height: double.infinity,
+                              decoration: BoxDecoration(color: AppTheme.cardColor, borderRadius: BorderRadius.circular(16)),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(guide.icon, color: guide.color, size: 24),
+                                  const SizedBox(height: 8),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                                    child: Text(
+                                      guide.title, 
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(fontSize: 12),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (guide.isCustom)
+                              Positioned(
+                                top: 8,
+                                right: 8,
+                                child: Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: const BoxDecoration(
+                                    color: AppTheme.primaryColor,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                       );
                     },
@@ -422,6 +484,31 @@ class MeasurementsTab extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showDeleteDialog(BuildContext context, AppProvider provider, MeasurementGuide guide) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Category'),
+        content: Text('Are you sure you want to delete "${guide.title}"? This will also delete all history for this category.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              if (guide.id != null) {
+                await provider.deleteCustomGuide(guide.id!);
+              }
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
       ),
     );
   }

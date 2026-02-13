@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_profile.dart';
 import '../models/measurement.dart';
+import '../models/measurement_guide.dart';
 import '../models/progress_photo.dart';
 import '../models/user_settings.dart';
 import '../models/goal.dart';
@@ -9,6 +10,7 @@ import '../services/database_service.dart';
 import '../services/photo_service.dart';
 import '../services/notification_service.dart';
 import '../services/goal_service.dart';
+import '../services/guide_service.dart';
 
 class AppProvider extends ChangeNotifier {
   UserProfile? _currentUser;
@@ -17,6 +19,7 @@ class AppProvider extends ChangeNotifier {
   List<Measurement> _measurements = [];
   List<ProgressPhoto> _photos = [];
   List<Goal> _goals = [];
+  List<MeasurementGuide> _customGuides = [];
   List<String> _dashboardCategories = ['bmi', 'whr', 'weight', 'height'];
   String _activeTabId = 'dashboard';
   bool _isLoading = true;
@@ -28,6 +31,8 @@ class AppProvider extends ChangeNotifier {
   List<Measurement> get measurements => _measurements;
   List<ProgressPhoto> get photos => _photos;
   List<Goal> get goals => _goals;
+  List<MeasurementGuide> get customGuides => _customGuides;
+  List<MeasurementGuide> get allGuides => <MeasurementGuide>[...MeasurementGuide.guides, ..._customGuides];
   List<String> get dashboardCategories => _dashboardCategories;
   String get activeTabId => _activeTabId;
   bool get isLoading => _isLoading;
@@ -60,6 +65,7 @@ class AppProvider extends ChangeNotifier {
         await loadDashboardCategories();
         await loadSettings();
         await loadGoals();
+        await loadCustomGuides();
       }
     } catch (e) {
       debugPrint('Error initializing app: $e');
@@ -67,6 +73,40 @@ class AppProvider extends ChangeNotifier {
 
     _isLoading = false;
     notifyListeners();
+  }
+
+  Future<void> loadCustomGuides() async {
+    if (_currentUser == null || _currentUser!.id == null) return;
+
+    try {
+      _customGuides = await GuideService.instance.getCustomGuides(_currentUser!.id!);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error loading custom guides: $e');
+    }
+  }
+
+  Future<void> addCustomGuide(MeasurementGuide guide) async {
+    if (_currentUser == null || _currentUser!.id == null) return;
+
+    try {
+      final newGuide = await GuideService.instance.addCustomGuide(guide, _currentUser!.id!);
+      _customGuides.add(newGuide);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error adding custom guide: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> deleteCustomGuide(int id) async {
+    try {
+      await GuideService.instance.deleteCustomGuide(id);
+      _customGuides.removeWhere((g) => g.id == id);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error deleting custom guide: $e');
+    }
   }
 
   Future<void> loadMeasurements() async {
@@ -211,6 +251,13 @@ class AppProvider extends ChangeNotifier {
       );
       _settings = settingsToSave;
       
+      // Ensure active tab is valid
+      if (_settings != null && _settings!.enabledTabs.isNotEmpty) {
+        if (!_settings!.enabledTabs.contains(_activeTabId)) {
+          _activeTabId = _settings!.enabledTabs.first;
+        }
+      }
+      
       // Resync notifications
       await _syncReminders();
       notifyListeners();
@@ -250,6 +297,7 @@ class AppProvider extends ChangeNotifier {
       await loadDashboardCategories();
       await loadSettings();
       await loadGoals();
+      await loadCustomGuides();
       
       notifyListeners();
     } catch (e) {
@@ -392,6 +440,7 @@ class AppProvider extends ChangeNotifier {
     loadDashboardCategories();
     loadSettings();
     loadGoals();
+    loadCustomGuides();
     notifyListeners();
   }
 

@@ -13,7 +13,7 @@ class DashboardCustomizeScreen extends StatefulWidget {
 
 class _DashboardCustomizeScreenState extends State<DashboardCustomizeScreen> {
   late List<String> _selectedCategories;
-
+  
   @override
   void initState() {
     super.initState();
@@ -21,24 +21,25 @@ class _DashboardCustomizeScreenState extends State<DashboardCustomizeScreen> {
     _selectedCategories = List.from(provider.dashboardCategories);
   }
 
-  void _toggleCategory(String category) {
-    setState(() {
-      if (_selectedCategories.contains(category)) {
-        if (_selectedCategories.length > 1) {
-          _selectedCategories.remove(category);
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('At least one category must be selected')),
-          );
-        }
-      } else {
-        _selectedCategories.add(category);
-      }
-    });
+  void _save() {
+    context.read<AppProvider>().setDashboardCategories(_selectedCategories);
+    Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
+    // Get latest guides
+    final provider = context.watch<AppProvider>();
+    final guides = provider.allGuides;
+    
+    // Calculate unselected
+    final available = [
+      'bmi',
+      'whr',
+      ...guides.map((g) => g.type),
+    ];
+    final unselected = available.where((c) => !_selectedCategories.contains(c)).toList();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Customize Dashboard'),
@@ -52,75 +53,129 @@ class _DashboardCustomizeScreenState extends State<DashboardCustomizeScreen> {
           ),
         ],
       ),
-      body: ReorderableListView(
-        padding: const EdgeInsets.all(16),
-        onReorder: (oldIndex, newIndex) {
-          setState(() {
-            if (newIndex > oldIndex) {
-              newIndex -= 1;
-            }
-            final item = _selectedCategories.removeAt(oldIndex);
-            _selectedCategories.insert(newIndex, item);
-          });
-        },
+      body: Column(
         children: [
-          ..._selectedCategories.map((cat) => _buildItem(cat, true)).toList(),
-          const Divider(key: ValueKey('divider'), height: 32),
-          ..._getAvailableCategories()
-              .where((cat) => !_selectedCategories.contains(cat))
-              .map((cat) => _buildItem(cat, false))
-              .toList(),
+          const Padding(
+            padding: EdgeInsets.all(16.0),
+            child: Text('Drag to reorder. Tap "X" to remove.', style: TextStyle(color: AppTheme.textSecondary)),
+          ),
+          Expanded(
+            child: ReorderableListView(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              onReorder: (oldIndex, newIndex) {
+                setState(() {
+                  if (newIndex > oldIndex) newIndex -= 1;
+                  final item = _selectedCategories.removeAt(oldIndex);
+                  _selectedCategories.insert(newIndex, item);
+                });
+              },
+              children: [
+                for (final cat in _selectedCategories)
+                  _buildSelectedItem(cat, guides),
+              ],
+            ),
+          ),
+          if (unselected.isNotEmpty) ...[
+            const Divider(),
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Text('Available to Add', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                children: [
+                  for (final cat in unselected)
+                    _buildUnselectedItem(cat, guides),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
 
-  List<String> _getAvailableCategories() {
-    return [
-      'bmi',
-      'whr',
-      ...MeasurementGuide.guides.map((g) => g.type),
-    ];
-  }
+  Widget _buildSelectedItem(String category, List<MeasurementGuide> guides) {
+    final title = _getCategoryTitle(category, guides);
+    final icon = _getCategoryIcon(category, guides);
+    final color = _getCategoryColor(category, guides);
 
-  Widget _buildItem(String category, bool isSelected) {
-    final title = _getCategoryTitle(category);
-    final icon = _getCategoryIcon(category);
-    final color = _getCategoryColor(category);
-
-    return ListTile(
+    return Container(
       key: ValueKey(category),
-      leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Icon(icon, color: color, size: 20),
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: AppTheme.cardColor,
+        borderRadius: BorderRadius.circular(12),
       ),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
-      trailing: isSelected 
-          ? const Icon(Icons.reorder, color: AppTheme.textSecondary)
-          : const Icon(Icons.add, color: AppTheme.primaryColor),
-      onTap: () => _toggleCategory(category),
+      child: ListTile(
+        leading: Icon(icon, color: color),
+        title: Text(title),
+        trailing: IconButton(
+          icon: const Icon(Icons.close, color: Colors.red),
+          onPressed: () {
+            setState(() {
+              _selectedCategories.remove(category);
+            });
+          },
+        ),
+      ),
     );
   }
 
-  String _getCategoryTitle(String category) {
+  Widget _buildUnselectedItem(String category, List<MeasurementGuide> guides) {
+    final title = _getCategoryTitle(category, guides);
+    final icon = _getCategoryIcon(category, guides);
+    final color = _getCategoryColor(category, guides);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: AppTheme.cardColor.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: ListTile(
+        leading: Icon(icon, color: color.withOpacity(0.7)),
+        title: Text(title, style: TextStyle(color: AppTheme.textPrimary.withOpacity(0.7))),
+        trailing: IconButton(
+          icon: const Icon(Icons.add_circle_outline, color: AppTheme.primaryColor),
+          onPressed: () {
+            setState(() {
+              _selectedCategories.add(category);
+            });
+          },
+        ),
+      ),
+    );
+  }
+
+  String _getCategoryTitle(String category, List<MeasurementGuide> guides) {
     if (category == 'bmi') return 'BMI';
     if (category == 'whr') return 'Waist/Hip Ratio';
-    return MeasurementGuide.guides.firstWhere((g) => g.type == category).title;
+    try {
+      return guides.firstWhere((g) => g.type == category).title;
+    } catch (_) {
+      return category;
+    }
   }
 
-  IconData _getCategoryIcon(String category) {
+  IconData _getCategoryIcon(String category, List<MeasurementGuide> guides) {
     if (category == 'bmi') return Icons.monitor_weight_outlined;
     if (category == 'whr') return Icons.accessibility_new;
-    return MeasurementGuide.guides.firstWhere((g) => g.type == category).icon;
+    try {
+      return guides.firstWhere((g) => g.type == category).icon;
+    } catch (_) {
+      return Icons.help_outline;
+    }
   }
 
-  Color _getCategoryColor(String category) {
+  Color _getCategoryColor(String category, List<MeasurementGuide> guides) {
     if (category == 'bmi') return AppTheme.primaryColor;
     if (category == 'whr') return AppTheme.secondaryColor;
-    return MeasurementGuide.guides.firstWhere((g) => g.type == category).color;
+    try {
+      return guides.firstWhere((g) => g.type == category).color;
+    } catch (_) {
+      return Colors.grey;
+    }
   }
 }

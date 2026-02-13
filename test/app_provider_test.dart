@@ -125,5 +125,35 @@ void main() {
       final ratio = appProvider.calculateWaistToHipRatio();
       expect(ratio, 0.8);
     });
+
+    test('loadSettings initializes enabledTabs correctly', () async {
+      when(mockDatabase.query('users')).thenAnswer((_) async => [
+        {'id': 1, 'name': 'User', 'gender': 'male', 'date_of_birth': '1990-01-01', 'created_at': '2026-01-01', 'updated_at': '2026-01-01'}
+      ]);
+      
+      // Return specific settings from DB
+      when(mockDatabase.query('settings', where: anyNamed('where'), whereArgs: anyNamed('whereArgs'))).thenAnswer((_) async => [
+        {
+          'id': 1,
+          'user_id': 1,
+          'reminder_interval_days': 7,
+          'preferred_unit_system': 'metric',
+          'enabled_tabs': 'dashboard,measure',
+          'created_at': '2026-01-01',
+          'updated_at': '2026-01-01',
+        }
+      ]);
+
+      when(mockDatabase.query('measurements', where: anyNamed('where'), whereArgs: anyNamed('whereArgs'), orderBy: anyNamed('orderBy'))).thenAnswer((_) async => []);
+      when(mockGoalService.getGoals(any)).thenAnswer((_) async => []);
+      when(mockPhotoService.getPhotos(any)).thenAnswer((_) async => []);
+
+      await appProvider.initialize();
+
+      expect(appProvider.settings, isNotNull);
+      expect(appProvider.settings!.enabledTabs, contains('dashboard'));
+      expect(appProvider.settings!.enabledTabs, contains('measure'));
+      expect(appProvider.settings!.enabledTabs, isNot(contains('photos')));
+    });
   });
 }
