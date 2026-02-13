@@ -1,0 +1,171 @@
+{
+  "@@locale": "en",
+  "appTitle": "Body Tracker",
+  "@appTitle": {
+    "description": "The title of the application"
+  },
+  "dashboard": "Dashboard",
+  "@dashboard": {
+    "description": "Dashboard tab label"
+  },
+  "measure": "Measure",
+  "@measure": {
+    "description": "Measure tab label"
+  },
+  "photos": "Photos",
+  "@photos": {
+    "description": "Photos tab label"
+  },
+  "progress": "Progress",
+  "@progress": {
+    "description": "Progress tab label"
+  },
+  "sizes": "Sizes",
+  "@sizes": {
+    "description": "Sizes tab label"
+  },
+  "profile": "Profile",
+  "@profile": {
+    "description": "Profile tab label"
+  },
+  "measurements": "Measurements",
+  "@measurements": {
+    "description": "Measurements screen title"
+  },
+  "newMeasurement": "New Measurement",
+  "@newMeasurement": {
+    "description": "New measurement button label"
+  },
+  "settings": "Settings",
+  "@settings": {
+    "description": "Settings section title"
+  },
+  "navigation": "Navigation",
+  "@navigation": {
+    "description": "Navigation settings title"
+  },
+  "customizeBottomBar": "Customize bottom bar",
+  "@customizeBottomBar": {
+    "description": "Navigation settings subtitle"
+  },
+  "reminders": "Reminders",
+  "@reminders": {
+    "description": "Reminders settings title"
+  },
+  "setupNotifications": "Setup notifications",
+  "@setupNotifications": {
+    "description": "Reminders settings subtitle"
+  },
+  "goals": "Goals",
+  "@goals": {
+    "description": "Goals settings title"
+  },
+  "trackTargets": "Track targets",
+  "@trackTargets": {
+    "description": "Goals settings subtitle"
+  },
+  "backupAndRestore": "Backup & Restore",
+  "@backupAndRestore": {
+    "description": "Backup settings title"
+  },
+  "dataManagement": "Data management",
+  "@dataManagement": {
+    "description": "Backup settings subtitle"
+  },
+  "extraFeatures": "Extra Features",
+  "@extraFeatures": {
+    "description": "Extra features section title"
+  },
+  "overview": "Overview",
+  "@overview": {
+    "description": "Dashboard subtitle"
+  },
+  "newEntries": "New entries",
+  "@newEntries": {
+    "description": "Measure subtitle"
+  },
+  "gallery": "Gallery",
+  "@gallery": {
+    "description": "Photos subtitle"
+  },
+  "charts": "Charts",
+  "@charts": {
+    "description": "Progress subtitle"
+  },
+  "clothingGuide": "Clothing guide",
+  "@clothingGuide": {
+    "description": "Sizes subtitle"
+  },
+  "yearsOld": "{age} years old",
+  "@yearsOld": {
+    "description": "User age display",
+    "placeholders": {
+      "age": {
+        "type": "int",
+        "example": "25"
+      }
+    }
+  },
+  "deleteCategory": "Delete Category",
+  "@deleteCategory": {
+    "description": "Delete category dialog title"
+  },
+  "deleteCategoryConfirm": "Are you sure you want to delete \"{title}\"? This will also delete all history for this category.",
+  "@deleteCategoryConfirm": {
+    "description": "Delete category confirmation message",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Weight"
+      }
+    }
+  },
+  "cancel": "Cancel",
+  "@cancel": {
+    "description": "Cancel button label"
+  },
+  "delete": "Delete",
+  "@delete": {
+    "description": "Delete button label"
+  },
+  "bmi": "BMI",
+  "@bmi": {
+    "description": "BMI label"
+  },
+  "waistHip": "Waist/Hip",
+  "@waistHip": {
+    "description": "Waist to hip ratio label"
+  },
+  "noData": "No data",
+  "@noData": {
+    "description": "No data available"
+  },
+  "underweight": "Underweight",
+  "@underweight": {
+    "description": "BMI category: underweight"
+  },
+  "normal": "Normal",
+  "@normal": {
+    "description": "BMI category: normal"
+  },
+  "overweight": "Overweight",
+  "@overweight": {
+    "description": "BMI category: overweight"
+  },
+  "obese": "Obese",
+  "@obese": {
+    "description": "BMI category: obese"
+  },
+  "lowRisk": "Low risk",
+  "@lowRisk": {
+    "description": "Health risk: low"
+  },
+  "moderateRisk": "Moderate risk",
+  "@moderateRisk": {
+    "description": "Health risk: moderate"
+  },
+  "highRisk": "High risk",
+  "@highRisk": {
+    "description": "Health risk: high"
+  }
+}
