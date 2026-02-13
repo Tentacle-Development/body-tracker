@@ -369,8 +369,6 @@ class DashboardTab extends StatelessWidget {
   }
 }
 
-import '../settings/custom_category_screen.dart';
-
 class MeasurementsTab extends StatelessWidget {
   const MeasurementsTab({super.key});
 
