@@ -14,6 +14,7 @@ import '../settings/reminder_settings_screen.dart';
 import '../settings/goals_screen.dart';
 import '../settings/clothing_size_screen.dart';
 import '../settings/navigation_settings_screen.dart';
+import '../settings/custom_category_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
