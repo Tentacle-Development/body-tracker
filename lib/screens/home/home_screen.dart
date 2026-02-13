@@ -4,7 +4,6 @@ import '../../models/measurement_guide.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/app_theme.dart';
 import '../measurements/guided_measurement_flow.dart';
-import '../measurements/measurement_input_screen.dart';
 import '../measurements/measurement_detail_screen.dart';
 import '../photos/photo_gallery_screen.dart';
 import 'progress_charts_tab.dart';
@@ -14,6 +13,7 @@ import '../settings/reminder_settings_screen.dart';
 import '../settings/goals_screen.dart';
 import '../settings/clothing_size_screen.dart';
 import '../settings/navigation_settings_screen.dart';
+import '../settings/custom_category_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
