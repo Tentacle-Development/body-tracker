@@ -10,6 +10,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
 
   cupertino_icons: ^1.0.8
   
@@ -30,7 +32,7 @@ dependencies:
   shared_preferences: ^2.5.4
   
   # Intl for date formatting
-  intl: ^0.19.0
+  intl: ^0.20.2
   
   # Camera and image handling
   image_picker: ^1.0.7
@@ -58,6 +60,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  generate: true
   
   assets:
     - assets/images/

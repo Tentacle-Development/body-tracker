@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../../models/measurement_guide.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/app_theme.dart';
@@ -55,6 +56,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    
     return Consumer<AppProvider>(
       builder: (context, provider, child) {
         final settings = provider.settings;
@@ -79,27 +82,27 @@ class _HomeScreenState extends State<HomeScreen> {
           switch (tabId) {
             case 'dashboard':
               tabScreens.add(const DashboardTab());
-              navItems.add(_buildNavItem(tabId, Icons.dashboard_outlined, Icons.dashboard, 'Dashboard', isSelected, () => provider.setActiveTab(tabId)));
+              navItems.add(_buildNavItem(tabId, Icons.dashboard_outlined, Icons.dashboard, l10n.dashboard, isSelected, () => provider.setActiveTab(tabId)));
               break;
             case 'measure':
               tabScreens.add(const MeasurementsTab());
-              navItems.add(_buildNavItem(tabId, Icons.straighten_outlined, Icons.straighten, 'Measure', isSelected, () => provider.setActiveTab(tabId)));
+              navItems.add(_buildNavItem(tabId, Icons.straighten_outlined, Icons.straighten, l10n.measure, isSelected, () => provider.setActiveTab(tabId)));
               break;
             case 'photos':
               tabScreens.add(const PhotoGalleryScreen());
-              navItems.add(_buildNavItem(tabId, Icons.photo_camera_outlined, Icons.photo_camera, 'Photos', isSelected, () => provider.setActiveTab(tabId)));
+              navItems.add(_buildNavItem(tabId, Icons.photo_camera_outlined, Icons.photo_camera, l10n.photos, isSelected, () => provider.setActiveTab(tabId)));
               break;
             case 'progress':
               tabScreens.add(const ProgressChartsTab());
-              navItems.add(_buildNavItem(tabId, Icons.show_chart_outlined, Icons.show_chart, 'Progress', isSelected, () => provider.setActiveTab(tabId)));
+              navItems.add(_buildNavItem(tabId, Icons.show_chart_outlined, Icons.show_chart, l10n.progress, isSelected, () => provider.setActiveTab(tabId)));
               break;
             case 'sizes':
               tabScreens.add(const ClothingSizeScreen());
-              navItems.add(_buildNavItem(tabId, Icons.checkroom_outlined, Icons.checkroom, 'Sizes', isSelected, () => provider.setActiveTab(tabId)));
+              navItems.add(_buildNavItem(tabId, Icons.checkroom_outlined, Icons.checkroom, l10n.sizes, isSelected, () => provider.setActiveTab(tabId)));
               break;
             case 'profile':
               tabScreens.add(const ProfileTab());
-              navItems.add(_buildNavItem(tabId, Icons.person_outline, Icons.person, 'Profile', isSelected, () => provider.setActiveTab(tabId)));
+              navItems.add(_buildNavItem(tabId, Icons.person_outline, Icons.person, l10n.profile, isSelected, () => provider.setActiveTab(tabId)));
               break;
           }
         }
@@ -146,6 +149,8 @@ class DashboardTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -155,9 +160,9 @@ class DashboardTab extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Dashboard',
-                  style: TextStyle(
+                Text(
+                  l10n.dashboard,
+                  style: const TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
                     color: AppTheme.textPrimary,
@@ -195,9 +200,9 @@ class DashboardTab extends StatelessWidget {
                       if (cat == 'bmi') {
                         return _buildStatCard(
                           context,
-                          'BMI',
+                          l10n.bmi,
                           bmi?.toStringAsFixed(1) ?? '--',
-                          _getBMICategory(bmi),
+                          _getBMICategory(context, bmi),
                           Icons.monitor_weight_outlined,
                           AppTheme.primaryColor,
                           onTap: () {
@@ -214,9 +219,9 @@ class DashboardTab extends StatelessWidget {
                       } else if (cat == 'whr') {
                         return _buildStatCard(
                           context,
-                          'Waist/Hip',
+                          l10n.waistHip,
                           whr?.toStringAsFixed(2) ?? '--',
-                          _getWHRCategory(whr, provider.currentUser?.gender),
+                          _getWHRCategory(context, whr, provider.currentUser?.gender),
                           Icons.accessibility_new,
                           AppTheme.secondaryColor,
                           onTap: () {
@@ -347,24 +352,26 @@ class DashboardTab extends StatelessWidget {
     );
   }
 
-  String _getBMICategory(double? bmi) {
-    if (bmi == null) return 'No data';
-    if (bmi < 18.5) return 'Underweight';
-    if (bmi < 25) return 'Normal';
-    if (bmi < 30) return 'Overweight';
-    return 'Obese';
+  String _getBMICategory(BuildContext context, double? bmi) {
+    final l10n = AppLocalizations.of(context)!;
+    if (bmi == null) return l10n.noData;
+    if (bmi < 18.5) return l10n.underweight;
+    if (bmi < 25) return l10n.normal;
+    if (bmi < 30) return l10n.overweight;
+    return l10n.obese;
   }
 
-  String _getWHRCategory(double? whr, String? gender) {
-    if (whr == null) return 'No data';
+  String _getWHRCategory(BuildContext context, double? whr, String? gender) {
+    final l10n = AppLocalizations.of(context)!;
+    if (whr == null) return l10n.noData;
     if (gender == 'Male') {
-      if (whr < 0.9) return 'Low risk';
-      if (whr < 1.0) return 'Moderate risk';
-      return 'High risk';
+      if (whr < 0.9) return l10n.lowRisk;
+      if (whr < 1.0) return l10n.moderateRisk;
+      return l10n.highRisk;
     } else {
-      if (whr < 0.8) return 'Low risk';
-      if (whr < 0.85) return 'Moderate risk';
-      return 'High risk';
+      if (whr < 0.8) return l10n.lowRisk;
+      if (whr < 0.85) return l10n.moderateRisk;
+      return l10n.highRisk;
     }
   }
 }
@@ -374,6 +381,8 @@ class MeasurementsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -383,9 +392,9 @@ class MeasurementsTab extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Measurements',
-                  style: TextStyle(
+                Text(
+                  l10n.measurements,
+                  style: const TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
                     color: AppTheme.textPrimary,
@@ -414,11 +423,11 @@ class MeasurementsTab extends StatelessWidget {
                   gradient: AppTheme.primaryGradient,
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.add, color: Colors.white, size: 28),
-                    SizedBox(width: 16),
-                    Text('New Measurement', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                    const Icon(Icons.add, color: Colors.white, size: 28),
+                    const SizedBox(width: 16),
+                    Text(l10n.newMeasurement, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                   ],
                 ),
               ),
@@ -487,15 +496,17 @@ class MeasurementsTab extends StatelessWidget {
   }
 
   void _showDeleteDialog(BuildContext context, AppProvider provider, MeasurementGuide guide) {
+    final l10n = AppLocalizations.of(context)!;
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Category'),
-        content: Text('Are you sure you want to delete "${guide.title}"? This will also delete all history for this category.'),
+        title: Text(l10n.deleteCategory),
+        content: Text(l10n.deleteCategoryConfirm(guide.title)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () async {
@@ -504,7 +515,7 @@ class MeasurementsTab extends StatelessWidget {
               }
               if (context.mounted) Navigator.pop(context);
             },
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            child: Text(l10n.delete, style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -517,6 +528,8 @@ class ProfileTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -524,7 +537,7 @@ class ProfileTab extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Profile', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+              Text(l10n.profile, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
               const SizedBox(height: 24),
               
               Consumer<AppProvider>(
@@ -540,7 +553,7 @@ class ProfileTab extends StatelessWidget {
                         const SizedBox(width: 16),
                         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                           Text(user.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                          Text('${user.age} years old', style: const TextStyle(color: AppTheme.textSecondary)),
+                          Text(l10n.yearsOld(user.age), style: const TextStyle(color: AppTheme.textSecondary)),
                         ]),
                       ],
                     ),
@@ -549,51 +562,52 @@ class ProfileTab extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               
-              const Text('Settings', style: TextStyle(color: AppTheme.textSecondary, fontSize: 14, fontWeight: FontWeight.w500)),
+              Text(l10n.settings, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14, fontWeight: FontWeight.w500)),
               const SizedBox(height: 12),
               
-              _buildSettingsItem(context, icon: Icons.navigation_outlined, title: 'Navigation', subtitle: 'Customize bottom bar', onTap: () {
+              _buildSettingsItem(context, icon: Icons.navigation_outlined, title: l10n.navigation, subtitle: l10n.customizeBottomBar, onTap: () {
                 Navigator.of(context).push(MaterialPageRoute(builder: (_) => const NavigationSettingsScreen()));
               }),
               const SizedBox(height: 12),
-              _buildSettingsItem(context, icon: Icons.notifications_active_outlined, title: 'Reminders', subtitle: 'Setup notifications', onTap: () {
+              _buildSettingsItem(context, icon: Icons.notifications_active_outlined, title: l10n.reminders, subtitle: l10n.setupNotifications, onTap: () {
                 Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ReminderSettingsScreen()));
               }),
               const SizedBox(height: 12),
-              _buildSettingsItem(context, icon: Icons.flag_outlined, title: 'Goals', subtitle: 'Track targets', onTap: () {
+              _buildSettingsItem(context, icon: Icons.flag_outlined, title: l10n.goals, subtitle: l10n.trackTargets, onTap: () {
                 Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GoalsScreen()));
               }),
               const SizedBox(height: 12),
-              _buildSettingsItem(context, icon: Icons.backup_rounded, title: 'Backup & Restore', subtitle: 'Data management', onTap: () {
+              _buildSettingsItem(context, icon: Icons.backup_rounded, title: l10n.backupAndRestore, subtitle: l10n.dataManagement, onTap: () {
                 Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BackupRestoreScreen()));
               }),
 
               // Extra Features
               Consumer<AppProvider>(
                 builder: (context, provider, child) {
+                  final l10n = AppLocalizations.of(context)!;
                   final enabledTabs = provider.settings?.enabledTabs ?? [];
                   final List<Widget> extraItems = [];
                   
                   if (!enabledTabs.contains('dashboard')) {
-                    extraItems.add(_buildSettingsItem(context, icon: Icons.dashboard_outlined, title: 'Dashboard', subtitle: 'Overview', onTap: () {}));
+                    extraItems.add(_buildSettingsItem(context, icon: Icons.dashboard_outlined, title: l10n.dashboard, subtitle: l10n.overview, onTap: () {}));
                   }
                   if (!enabledTabs.contains('measure')) {
-                    extraItems.add(_buildSettingsItem(context, icon: Icons.straighten_outlined, title: 'Measure', subtitle: 'New entries', onTap: () {
+                    extraItems.add(_buildSettingsItem(context, icon: Icons.straighten_outlined, title: l10n.measure, subtitle: l10n.newEntries, onTap: () {
                       Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GuidedMeasurementFlow()));
                     }));
                   }
                   if (!enabledTabs.contains('photos')) {
-                    extraItems.add(_buildSettingsItem(context, icon: Icons.photo_camera_outlined, title: 'Photos', subtitle: 'Gallery', onTap: () {
+                    extraItems.add(_buildSettingsItem(context, icon: Icons.photo_camera_outlined, title: l10n.photos, subtitle: l10n.gallery, onTap: () {
                       Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PhotoGalleryScreen()));
                     }));
                   }
                   if (!enabledTabs.contains('progress')) {
-                    extraItems.add(_buildSettingsItem(context, icon: Icons.show_chart_outlined, title: 'Progress', subtitle: 'Charts', onTap: () {
+                    extraItems.add(_buildSettingsItem(context, icon: Icons.show_chart_outlined, title: l10n.progress, subtitle: l10n.charts, onTap: () {
                       Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProgressChartsTab()));
                     }));
                   }
                   if (!enabledTabs.contains('sizes')) {
-                    extraItems.add(_buildSettingsItem(context, icon: Icons.checkroom_outlined, title: 'Sizes', subtitle: 'Clothing guide', onTap: () {
+                    extraItems.add(_buildSettingsItem(context, icon: Icons.checkroom_outlined, title: l10n.sizes, subtitle: l10n.clothingGuide, onTap: () {
                       Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ClothingSizeScreen()));
                     }));
                   }
@@ -603,7 +617,7 @@ class ProfileTab extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 24),
-                      const Text('Extra Features', style: TextStyle(color: AppTheme.textSecondary, fontSize: 14)),
+                      Text(l10n.extraFeatures, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14)),
                       const SizedBox(height: 12),
                       ...extraItems.expand((item) => [item, const SizedBox(height: 12)]),
                     ],
